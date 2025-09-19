@@ -11,12 +11,14 @@ import flask
 from flask.logging import default_handler
 
 from local_weather_server.server.servlets.awn import awn
+from local_weather_server.server.servlets.default import default
 from local_weather_server.server.servlets.wunderground import wunderground
 
 app = flask.Flask('local weather server')
 app.logger.removeHandler(default_handler)
 app.register_blueprint(wunderground)
 app.register_blueprint(awn)
+app.register_blueprint(default)
 
 
 class AppContext:
