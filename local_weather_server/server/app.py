@@ -8,11 +8,13 @@ from collections.abc import Sequence
 from typing import NoReturn
 
 import flask
+from flask.logging import default_handler
 
 from local_weather_server.server.servlets.awn import awn
 from local_weather_server.server.servlets.wunderground import wunderground
 
 app = flask.Flask('local weather server')
+app.logger.removeHandler(default_handler)
 app.register_blueprint(wunderground)
 app.register_blueprint(awn)
 
@@ -23,12 +25,20 @@ class AppContext:
 
 @app.before_request
 def before_request() -> None:
+    AppContext.database_path = os.getenv('DB_PATH', 'database.db')
+    create_database(AppContext.database_path)
     flask.g.db = sqlite3.connect(AppContext.database_path, autocommit=True)
 
 
 @app.teardown_request
 def teardown_request(_: object) -> None:
     flask.g.db.close()
+
+
+def create_database(database: str) -> None:
+    if not os.path.exists(database):
+        with sqlite3.connect(database) as db:
+            create_schema_sqlite(db)
 
 
 def create_schema_sqlite(db: sqlite3.Connection) -> None:
@@ -45,11 +55,6 @@ def create_schema_sqlite(db: sqlite3.Connection) -> None:
             db.executescript(resource.read())
 
 
-def create_database(database: str) -> None:
-    with sqlite3.connect(database) as db:
-        create_schema_sqlite(db)
-
-
 def main(argv: Sequence[str] | None = None) -> NoReturn:
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', type=int, default=5000)
@@ -63,10 +68,7 @@ def main(argv: Sequence[str] | None = None) -> NoReturn:
     )
     args = parser.parse_args(argv)
 
-    if not os.path.exists(args.database):
-        create_database(args.database)
-
-    AppContext.database_path = args.database
+    os.environ['DB_PATH'] = args.database
 
     kwargs = {'port': args.port, 'debug': args.debug}
 
