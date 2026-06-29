@@ -35,6 +35,10 @@ def _in_testing_app_context(application):
 
 @pytest.fixture
 def server(sandbox):
+    import os
     with _patch_app_with_client(app), _in_testing_app_context(app) as client:
-        with mock.patch.object(AppContext, 'database_path', sandbox.db_path):
-            yield LocalWeatherServer(client, sandbox)
+        with mock.patch.dict(os.environ, {'DB_PATH': sandbox.db_path}):
+            with mock.patch.object(
+                AppContext, 'database_path', sandbox.db_path,
+            ):
+                yield LocalWeatherServer(client, sandbox)
