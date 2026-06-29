@@ -429,3 +429,26 @@ def test_wind_and_gust(server: Any) -> None:
     assert len(history) == 2
     assert history[0]['timestamp'] == now_epoch - 2700
     assert history[1]['timestamp'] == now_epoch - 900
+
+
+def test_endpoints_empty_data(server: Any) -> None:
+    # Station exists but has no data
+    _insert_station(server, 'station-abc')
+
+    # Get wind
+    resp = server.client.get(
+        flask.url_for('api_v1.get_wind', station_id='station-abc'),
+    )
+    assert resp.response.status_code == 200
+    assert resp.json['current'] is None
+    assert resp.json['max_gust_1h'] == 0.0
+    assert resp.json['history_1h'] == []
+
+    # Get rain
+    resp = server.client.get(
+        flask.url_for('api_v1.get_rain', station_id='station-abc'),
+    )
+    assert resp.response.status_code == 200
+    assert resp.json['current'] is None
+    assert resp.json['last_zero_timestamp'] == 0
+    assert resp.json['history_since_last_zero'] == []

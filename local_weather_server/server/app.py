@@ -49,8 +49,11 @@ def create_database(database: str) -> None:
     dirname = os.path.dirname(database)
     if dirname:
         os.makedirs(dirname, exist_ok=True)
-    with sqlite3.connect(database) as db:
+    db = sqlite3.connect(database)
+    try:
         create_schema_sqlite(db)
+    finally:
+        db.close()
 
 
 def create_schema_sqlite(db: sqlite3.Connection) -> None:
