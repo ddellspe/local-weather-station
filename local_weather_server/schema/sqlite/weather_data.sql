@@ -1,4 +1,4 @@
-CREATE TABLE weather_data(
+CREATE TABLE IF NOT EXISTS weather_data(
     timestamp INTEGER NOT NULL,
     weather_station_id CHAR(40) NOT NULL,
     temperature DECIMAL(4, 1) NOT NULL,
@@ -19,5 +19,6 @@ CREATE TABLE weather_data(
     uv_index INT NOT NULL
 );
 
-CREATE INDEX weather_data_timestamp_idx ON weather_data (timestamp);
-CREATE INDEX weather_data_weather_station_id_idx ON weather_data (weather_station_id);
+CREATE INDEX IF NOT EXISTS weather_data_timestamp_idx ON weather_data (timestamp);
+CREATE INDEX IF NOT EXISTS weather_data_weather_station_id_idx ON weather_data (weather_station_id);
+CREATE INDEX IF NOT EXISTS weather_data_station_timestamp_idx ON weather_data (weather_station_id, timestamp DESC);

@@ -10,6 +10,7 @@ from typing import NoReturn
 import flask
 from flask.logging import default_handler
 
+from local_weather_server.server.servlets.api import api_v1
 from local_weather_server.server.servlets.awn import awn
 from local_weather_server.server.servlets.default import default
 from local_weather_server.server.servlets.wunderground import wunderground
@@ -19,16 +20,23 @@ app.logger.removeHandler(default_handler)
 app.register_blueprint(wunderground)
 app.register_blueprint(awn)
 app.register_blueprint(default)
+app.register_blueprint(api_v1, url_prefix='/api/v1')
 
 
 class AppContext:
     database_path = 'database.db'
 
 
+_database_initialized_path: str | None = None
+
+
 @app.before_request
 def before_request() -> None:
+    global _database_initialized_path
     AppContext.database_path = os.getenv('DB_PATH', 'database.db')
-    create_database(AppContext.database_path)
+    if _database_initialized_path != AppContext.database_path:
+        create_database(AppContext.database_path)
+        _database_initialized_path = AppContext.database_path
     flask.g.db = sqlite3.connect(AppContext.database_path, autocommit=True)
 
 
@@ -38,9 +46,11 @@ def teardown_request(_: object) -> None:
 
 
 def create_database(database: str) -> None:
-    if not os.path.exists(database):
-        with sqlite3.connect(database) as db:
-            create_schema_sqlite(db)
+    dirname = os.path.dirname(database)
+    if dirname:
+        os.makedirs(dirname, exist_ok=True)
+    with sqlite3.connect(database) as db:
+        create_schema_sqlite(db)
 
 
 def create_schema_sqlite(db: sqlite3.Connection) -> None:
