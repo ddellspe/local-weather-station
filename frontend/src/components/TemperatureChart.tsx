@@ -46,14 +46,6 @@ export default function TemperatureChart({ data }: TemperatureChartProps) {
   useEffect(() => {
     if (!canvasRef.current || data.length === 0) return;
 
-    // Destroy existing chart instance before creating a new one
-    if (chartRef.current) {
-      chartRef.current.destroy();
-    }
-
-    const ctx = canvasRef.current.getContext("2d");
-    if (!ctx) return;
-
     // Sort data chronologically (older to newer) for correct line rendering
     const sortedData = [...data].sort((a, b) => a.timestamp - b.timestamp);
 
@@ -68,102 +60,127 @@ export default function TemperatureChart({ data }: TemperatureChartProps) {
     const feelsLikeTemps = sortedData.map((d) => d.feels_like);
     const dewPoints = sortedData.map((d) => d.dew_point);
 
-    chartRef.current = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Temperature",
-            data: temperatures,
-            borderColor: "#3b82f6",
-            backgroundColor: "rgba(59, 130, 246, 0.05)",
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: true,
-          },
-          {
-            label: "Feels Like",
-            data: feelsLikeTemps,
-            borderColor: "#fbbf24",
-            backgroundColor: "rgba(251, 191, 36, 0.05)",
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: true,
-          },
-          {
-            label: "Dew Point",
-            data: dewPoints,
-            borderColor: "#22d3ee",
-            backgroundColor: "rgba(34, 211, 238, 0.05)",
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: true,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-            labels: {
-              color: "#94a3b8",
-              font: {
-                family: "Outfit",
-                size: 12,
-              },
-            },
-          },
-          tooltip: {
-            mode: "index",
-            intersect: false,
-            titleFont: { family: "Outfit" },
-            bodyFont: { family: "Outfit" },
-          },
-        },
-        scales: {
-          x: {
-            grid: {
-              color: "rgba(255, 255, 255, 0.05)",
-            },
-            ticks: {
-              color: "#94a3b8",
-              maxTicksLimit: 8,
-              font: {
-                family: "Outfit",
-              },
-            },
-          },
-          y: {
-            grid: {
-              color: "rgba(255, 255, 255, 0.05)",
-            },
-            ticks: {
-              color: "#94a3b8",
-              font: {
-                family: "Outfit",
-              },
-              callback: (value) => `${value}°F`,
-            },
-          },
-        },
-      },
-    });
+    if (chartRef.current) {
+      chartRef.current.data.labels = labels;
+      chartRef.current.data.datasets[0].data = temperatures;
+      chartRef.current.data.datasets[1].data = feelsLikeTemps;
+      chartRef.current.data.datasets[2].data = dewPoints;
+      chartRef.current.options.animation = { duration: 0 };
+      chartRef.current.update();
+    } else {
+      const ctx = canvasRef.current.getContext("2d");
+      if (!ctx) return;
 
+      chartRef.current = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Temperature",
+              data: temperatures,
+              borderColor: "#3b82f6",
+              backgroundColor: "rgba(59, 130, 246, 0.05)",
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              fill: true,
+            },
+            {
+              label: "Feels Like",
+              data: feelsLikeTemps,
+              borderColor: "#fbbf24",
+              backgroundColor: "rgba(251, 191, 36, 0.05)",
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              fill: true,
+            },
+            {
+              label: "Dew Point",
+              data: dewPoints,
+              borderColor: "#22d3ee",
+              backgroundColor: "rgba(34, 211, 238, 0.05)",
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                color: "#94a3b8",
+                font: {
+                  family: "Outfit",
+                  size: 12,
+                  weight: 500,
+                },
+              },
+            },
+            tooltip: {
+              mode: "index",
+              intersect: false,
+              titleFont: { family: "Outfit", size: 12 },
+              bodyFont: { family: "Outfit", size: 12 },
+              callbacks: {
+                label: (context) => {
+                  return `${context.dataset.label}: ${context.parsed.y.toFixed(1)} °F`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: {
+                color: "rgba(255, 255, 255, 0.05)",
+              },
+              ticks: {
+                color: "#94a3b8",
+                font: {
+                  family: "Outfit",
+                  size: 10,
+                },
+              },
+            },
+            y: {
+              grid: {
+                color: "rgba(255, 255, 255, 0.05)",
+              },
+              ticks: {
+                color: "#94a3b8",
+                font: {
+                  family: "Outfit",
+                  size: 10,
+                },
+                callback: (value) => `${value}°F`,
+              },
+            },
+          },
+        },
+      });
+    }
+  }, [data]);
+
+  useEffect(() => {
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
+        chartRef.current = null;
       }
     };
-  }, [data]);
+  }, []);
 
   return (
     <div
