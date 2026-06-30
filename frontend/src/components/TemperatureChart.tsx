@@ -192,16 +192,9 @@ export default function TemperatureChart({ data }: TemperatureChartProps) {
         boxSizing: "border-box",
       }}
     >
-      <h3
-        style={{
-          fontSize: "1.2rem",
-          color: "#60a5fa",
-          marginBottom: "1rem",
-          textAlign: "left",
-        }}
-      >
-        24-Hour Temperature History
-      </h3>
+      <div className="card-header">
+        <h3 className="card-title">24-Hour Temperature History</h3>
+      </div>
       <div style={{ height: "260px", width: "100%" }}>
         <canvas ref={canvasRef} />
       </div>

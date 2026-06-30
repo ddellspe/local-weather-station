@@ -206,16 +206,8 @@ export default function RainTracker({
         boxSizing: "border-box",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h3 style={{ fontSize: "1.2rem", color: "#60a5fa", margin: 0 }}>
-          Rainfall Tracker
-        </h3>
+      <div className="card-header">
+        <h3 className="card-title">Rainfall Tracker</h3>
         {isRaining && (
           <div
             style={{
@@ -287,45 +279,36 @@ export default function RainTracker({
           <div className="metric-row">
             <div className="metric-label">Rain Rate</div>
             <div className="metric-value highlight-blue">
-              {currentRate !== null ? currentRate.toFixed(2) : "0.00"}{" "}
-              <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>in/h</span>
+              {currentRate !== null ? currentRate.toFixed(2) : "0.00"}
+              <span className="unit">in/h</span>
             </div>
           </div>
           <div className="metric-row">
             <div className="metric-label">Daily</div>
             <div className="metric-value">
-              {dailyRain !== null ? dailyRain.toFixed(2) : "0.00"}{" "}
-              <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>in</span>
+              {dailyRain !== null ? dailyRain.toFixed(2) : "0.00"}
+              <span className="unit">in</span>
             </div>
           </div>
           <div className="metric-row">
             <div className="metric-label">Weekly</div>
-            <div
-              className="metric-value"
-              style={{ fontSize: "1.1rem", fontWeight: 600 }}
-            >
-              {weeklyRain !== null ? weeklyRain.toFixed(2) : "0.00"}{" "}
-              <span style={{ fontSize: "0.75rem", fontWeight: 500 }}>in</span>
+            <div className="metric-value">
+              {weeklyRain !== null ? weeklyRain.toFixed(2) : "0.00"}
+              <span className="unit">in</span>
             </div>
           </div>
           <div className="metric-row">
             <div className="metric-label">Monthly</div>
-            <div
-              className="metric-value"
-              style={{ fontSize: "1.1rem", fontWeight: 600 }}
-            >
-              {monthlyRain !== null ? monthlyRain.toFixed(2) : "0.00"}{" "}
-              <span style={{ fontSize: "0.75rem", fontWeight: 500 }}>in</span>
+            <div className="metric-value">
+              {monthlyRain !== null ? monthlyRain.toFixed(2) : "0.00"}
+              <span className="unit">in</span>
             </div>
           </div>
           <div className="metric-row">
             <div className="metric-label">Yearly</div>
-            <div
-              className="metric-value"
-              style={{ fontSize: "1.1rem", fontWeight: 600 }}
-            >
-              {yearlyRain !== null ? yearlyRain.toFixed(2) : "0.00"}{" "}
-              <span style={{ fontSize: "0.75rem", fontWeight: 500 }}>in</span>
+            <div className="metric-value">
+              {yearlyRain !== null ? yearlyRain.toFixed(2) : "0.00"}
+              <span className="unit">in</span>
             </div>
           </div>
         </div>

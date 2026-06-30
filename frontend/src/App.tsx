@@ -198,46 +198,43 @@ function App() {
 
   return (
     <>
-      <header className="hero-header">
-        <h1>{siteTitle}</h1>
-        <p>Real-time Meteorological Dashboard</p>
+      <header className="dashboard-header">
+        <div className="header-left">
+          <h1>{siteTitle}</h1>
+          <p className="header-subtitle">Real-time Meteorological Dashboard</p>
+        </div>
 
-        {stationsLoading && <p>Loading stations...</p>}
-        {stationsError && (
-          <p style={{ color: "#ef4444" }}>Error: {stationsError}</p>
-        )}
-
-        {/* Station Selector */}
-        {!stationsLoading && !stationsError && stations.length > 1 && (
-          <div style={{ marginTop: "1rem" }}>
-            <label
-              htmlFor="station-select"
-              style={{ marginRight: "0.5rem", fontWeight: 500 }}
-            >
-              Active Station:{" "}
-            </label>
-            <select
-              id="station-select"
-              value={selectedStation || ""}
-              onChange={(e) => setSelectedStation(e.target.value)}
-              style={{
-                padding: "0.4rem 0.8rem",
-                borderRadius: "8px",
-                background: "rgba(30, 41, 59, 0.9)",
-                color: "#fff",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                fontSize: "0.95rem",
-              }}
-            >
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.id}
-                </option>
-              ))}
-            </select>
+        <div className="header-right">
+          <div className="live-status">
+            <span className="status-dot"></span>
+            <span className="status-text">Live</span>
           </div>
-        )}
+
+          {/* Station Selector */}
+          {!stationsLoading && !stationsError && stations.length > 1 && (
+            <div className="station-selector-wrapper">
+              <label htmlFor="station-select">Station: </label>
+              <select
+                id="station-select"
+                value={selectedStation || ""}
+                onChange={(e) => setSelectedStation(e.target.value)}
+              >
+                {stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </header>
+
+      {stationsError && (
+        <p style={{ color: "var(--accent-red)", marginBottom: "1.5rem" }}>
+          Error loading stations: {stationsError}
+        </p>
+      )}
 
       <main className="dashboard-grid">
         {/* Weather Conditions Display */}
@@ -247,32 +244,16 @@ function App() {
           </p>
         )}
         {latestError && (
-          <p style={{ color: "#ef4444", gridColumn: "1 / -1" }}>
+          <p style={{ color: "var(--accent-red)", gridColumn: "1 / -1" }}>
             Error: {latestError}
           </p>
         )}
 
         {!latestLoading && !latestError && latestReading && (
-          <div
-            className="glass-card"
-            style={{ maxWidth: "480px", margin: "0 auto", width: "100%" }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "1.5rem",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
-                paddingBottom: "0.75rem",
-              }}
-            >
-              <h3 style={{ fontSize: "1.2rem", color: "#60a5fa" }}>
-                Current Conditions
-              </h3>
-              <span
-                style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}
-              >
+          <div className="glass-card">
+            <div className="card-header">
+              <h3 className="card-title">Current Conditions</h3>
+              <span className="card-subtitle">
                 {new Date(latestReading.timestamp * 1000).toLocaleTimeString(
                   [],
                   { hour: "2-digit", minute: "2-digit", second: "2-digit" },
@@ -283,44 +264,48 @@ function App() {
             <div className="metric-row">
               <div className="metric-label">Temperature</div>
               <div className="metric-value">
-                {latestReading.temperature.toFixed(1)}°F
+                {latestReading.temperature.toFixed(1)}
+                <span className="unit">°F</span>
               </div>
             </div>
 
             <div className="metric-row">
               <div className="metric-label">Feels Like</div>
               <div className="metric-value highlight-orange">
-                {latestReading.feels_like.toFixed(1)}°F
+                {latestReading.feels_like.toFixed(1)}
+                <span className="unit">°F</span>
               </div>
             </div>
 
             <div className="metric-row">
               <div className="metric-label">Humidity</div>
               <div className="metric-value">
-                {latestReading.humidity.toFixed(0)}%
+                {latestReading.humidity.toFixed(0)}
+                <span className="unit">%</span>
               </div>
             </div>
 
             <div className="metric-row">
               <div className="metric-label">Dew Point</div>
               <div className="metric-value">
-                {latestReading.dew_point.toFixed(1)}°F
+                {latestReading.dew_point.toFixed(1)}
+                <span className="unit">°F</span>
               </div>
             </div>
 
             <div className="metric-row">
               <div className="metric-label">Wind Speed</div>
               <div className="metric-value highlight-cyan">
-                {latestReading.wind_speed.toFixed(1)}{" "}
-                <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>mph</span>
+                {latestReading.wind_speed.toFixed(1)}
+                <span className="unit">mph</span>
               </div>
             </div>
 
             <div className="metric-row">
               <div className="metric-label">Daily Rain</div>
               <div className="metric-value highlight-blue">
-                {latestReading.daily_rain.toFixed(2)}{" "}
-                <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>in</span>
+                {latestReading.daily_rain.toFixed(2)}
+                <span className="unit">in</span>
               </div>
             </div>
           </div>

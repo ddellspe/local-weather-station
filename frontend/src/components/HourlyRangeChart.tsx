@@ -217,17 +217,8 @@ export default function HourlyRangeChart({ data }: HourlyRangeChartProps) {
         boxSizing: "border-box",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "0.75rem",
-        }}
-      >
-        <h3 style={{ fontSize: "1.2rem", color: "#60a5fa", margin: 0 }}>
-          24-Hour Range & Averages
-        </h3>
+      <div className="card-header">
+        <h3 className="card-title">24-Hour Range & Averages</h3>
         {/* Metric Selector Button Group */}
         <div
           style={{
