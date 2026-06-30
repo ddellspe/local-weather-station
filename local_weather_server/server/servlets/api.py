@@ -278,3 +278,13 @@ def get_hourly_history(
         })
 
     return {'history': history}
+
+
+@api_v1.route('/config')
+def get_config() -> dict[str, Any]:
+    import os
+    try:
+        update_interval = int(os.environ.get('UPDATE_INTERVAL_SECONDS', '15'))
+    except ValueError:
+        update_interval = 15
+    return {'update_interval': update_interval}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from typing import Any
+from unittest.mock import patch
 
 import flask
 
@@ -452,3 +453,23 @@ def test_endpoints_empty_data(server: Any) -> None:
     assert resp.json['current'] is None
     assert resp.json['last_zero_timestamp'] == 0
     assert resp.json['history_since_last_zero'] == []
+
+
+def test_get_config(server: Any) -> None:
+    # 1. Default fallback case (clean env)
+    with patch.dict('os.environ', {}, clear=True):
+        resp = server.client.get(flask.url_for('api_v1.get_config'))
+        assert resp.response.status_code == 200
+        assert resp.json == {'update_interval': 15}
+
+    # 2. Configured case
+    with patch.dict('os.environ', {'UPDATE_INTERVAL_SECONDS': '12'}):
+        resp = server.client.get(flask.url_for('api_v1.get_config'))
+        assert resp.response.status_code == 200
+        assert resp.json == {'update_interval': 12}
+
+    # 3. Invalid value fallback case
+    with patch.dict('os.environ', {'UPDATE_INTERVAL_SECONDS': 'not-a-number'}):
+        resp = server.client.get(flask.url_for('api_v1.get_config'))
+        assert resp.response.status_code == 200
+        assert resp.json == {'update_interval': 15}

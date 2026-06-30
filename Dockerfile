@@ -23,6 +23,8 @@ RUN python -m pip install virtualenv && \
     /venv/bin/pip install uwsgi
 
 ENV DB_PATH="database.db"
+ENV SITE_TITLE="Local Weather Server"
+ENV UPDATE_INTERVAL_SECONDS="15"
 
 EXPOSE 5000
 
