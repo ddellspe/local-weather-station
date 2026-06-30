@@ -73,8 +73,8 @@ export default function WindRose({
   // Calculate pointer coordinates for the CURRENT wind direction needle
   const currentNeedle = useMemo(() => {
     if (currentDirection === null) return null;
-    // Flip angle by 180 degrees to indicate the direction the wind is blowing FROM
-    const angle = ((currentDirection + 180) * Math.PI) / 180 - Math.PI / 2;
+    // Calculate angle in radians, rotating N (0 degrees) to point straight up
+    const angle = (currentDirection * Math.PI) / 180 - Math.PI / 2;
     // Tip of needle
     const xTip = center + (maxRadius - 3) * Math.cos(angle);
     const yTip = center + (maxRadius - 3) * Math.sin(angle);
