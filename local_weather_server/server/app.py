@@ -16,7 +16,7 @@ from local_weather_server.server.servlets.default import default
 from local_weather_server.server.servlets.wunderground import wunderground
 
 app = flask.Flask(
-    'local weather server',
+    __name__,
     static_folder='static', static_url_path='',
 )
 app.logger.removeHandler(default_handler)
