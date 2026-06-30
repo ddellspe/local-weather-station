@@ -6,5 +6,8 @@ default = flask.Blueprint('default', __name__)
 
 
 @default.route('/')
-def default_endpoint() -> dict[str, str]:
-    return {'message': 'success'}
+def default_endpoint() -> flask.Response | dict[str, str]:
+    try:
+        return flask.current_app.send_static_file('index.html')
+    except Exception:
+        return {'message': 'success'}

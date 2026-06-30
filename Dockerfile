@@ -1,9 +1,21 @@
+# Stage 1: Build the frontend React/Vite dashboard
+FROM node:24-alpine AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Build the Python Flask server
 FROM python:3.13-bullseye
 
 WORKDIR /app
 
 COPY ./setup.cfg ./setup.py ./wsgi.py /app/
 ADD local_weather_server /app/local_weather_server
+
+# Copy the compiled static assets from Stage 1 into the Flask static folder
+COPY --from=frontend-builder /frontend/dist /app/local_weather_server/server/static
 
 RUN python -m pip install virtualenv && \
     python -m virtualenv /venv && \
