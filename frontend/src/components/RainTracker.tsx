@@ -49,13 +49,7 @@ export default function RainTracker({
   useEffect(() => {
     if (!canvasRef.current || history.length === 0) return;
 
-    if (chartRef.current) {
-      chartRef.current.destroy();
-    }
-
-    const ctx = canvasRef.current.getContext("2d");
-    if (!ctx) return;
-
+    // Sort data chronologically (older to newer) for correct line rendering
     const sortedData = [...history].sort((a, b) => a.timestamp - b.timestamp);
 
     const labels = sortedData.map((d) =>
@@ -67,120 +61,137 @@ export default function RainTracker({
     const rates = sortedData.map((d) => d.rainfall_rate);
     const accumulations = sortedData.map((d) => d.daily_rain);
 
-    chartRef.current = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Rain Rate",
-            data: rates,
-            borderColor: "#38bdf8",
-            backgroundColor: "rgba(56, 189, 248, 0.12)",
-            tension: 0.4,
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: true,
-            yAxisID: "y",
-          },
-          {
-            label: "Accumulation",
-            data: accumulations,
-            borderColor: "#818cf8",
-            backgroundColor: "rgba(129, 140, 248, 0.12)",
-            tension: 0.4,
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: false,
-            yAxisID: "yRain",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            position: "top",
-            labels: {
-              color: "#94a3b8",
-              boxWidth: 8,
-              boxHeight: 8,
-              usePointStyle: true,
-              pointStyle: "circle",
-              font: {
-                family: "Outfit",
-                size: 9,
-              },
-            },
-          },
-          tooltip: {
-            mode: "index",
-            intersect: false,
-            titleFont: { family: "Outfit", size: 10 },
-            bodyFont: { family: "Outfit", size: 10 },
-            callbacks: {
-              label: (context) => {
-                if (context.dataset.label === "Rain Rate") {
-                  return `Rate: ${context.parsed.y.toFixed(2)} in/h`;
-                } else {
-                  return `Accum: ${context.parsed.y.toFixed(2)} in`;
-                }
-              },
-            },
-          },
-        },
-        scales: {
-          x: {
-            display: false,
-          },
-          y: {
-            type: "linear",
-            display: true,
-            position: "left",
-            min: 0,
-            grid: {
-              color: "rgba(255, 255, 255, 0.05)",
-            },
-            ticks: {
-              color: "#94a3b8",
-              font: {
-                family: "Outfit",
-                size: 8,
-              },
-              callback: (value) => `${value} in/h`,
-            },
-          },
-          yRain: {
-            type: "linear",
-            display: true,
-            position: "right",
-            min: 0,
-            grid: {
-              drawOnChartArea: false,
-            },
-            ticks: {
-              color: "#94a3b8",
-              font: {
-                family: "Outfit",
-                size: 8,
-              },
-              callback: (value) => `${value} in`,
-            },
-          },
-        },
-      },
-    });
+    if (chartRef.current) {
+      chartRef.current.data.labels = labels;
+      chartRef.current.data.datasets[0].data = rates;
+      chartRef.current.data.datasets[1].data = accumulations;
+      chartRef.current.options.animation = { duration: 0 };
+      chartRef.current.update();
+    } else {
+      const ctx = canvasRef.current.getContext("2d");
+      if (!ctx) return;
 
+      chartRef.current = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Rain Rate",
+              data: rates,
+              borderColor: "#38bdf8",
+              backgroundColor: "rgba(56, 189, 248, 0.12)",
+              tension: 0.4,
+              borderWidth: 1.5,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              fill: true,
+              yAxisID: "y",
+            },
+            {
+              label: "Accumulation",
+              data: accumulations,
+              borderColor: "#818cf8",
+              backgroundColor: "rgba(129, 140, 248, 0.12)",
+              tension: 0.4,
+              borderWidth: 1.5,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              fill: false,
+              yAxisID: "yRain",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: "top",
+              labels: {
+                color: "#94a3b8",
+                boxWidth: 8,
+                boxHeight: 8,
+                usePointStyle: true,
+                pointStyle: "circle",
+                font: {
+                  family: "Outfit",
+                  size: 9,
+                },
+              },
+            },
+            tooltip: {
+              mode: "index",
+              intersect: false,
+              titleFont: { family: "Outfit", size: 10 },
+              bodyFont: { family: "Outfit", size: 10 },
+              callbacks: {
+                label: (context) => {
+                  if (context.dataset.label === "Rain Rate") {
+                    return `Rate: ${context.parsed.y.toFixed(2)} in/h`;
+                  } else {
+                    return `Accum: ${context.parsed.y.toFixed(2)} in`;
+                  }
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              display: false,
+            },
+            y: {
+              type: "linear",
+              display: true,
+              position: "left",
+              min: 0,
+              grid: {
+                color: "rgba(255, 255, 255, 0.05)",
+              },
+              ticks: {
+                color: "#94a3b8",
+                font: {
+                  family: "Outfit",
+                  size: 8,
+                },
+                callback: (value) => `${value} in/h`,
+              },
+            },
+            yRain: {
+              type: "linear",
+              display: true,
+              position: "right",
+              min: 0,
+              grid: {
+                drawOnChartArea: false,
+              },
+              ticks: {
+                color: "#94a3b8",
+                font: {
+                  family: "Outfit",
+                  size: 8,
+                },
+                callback: (value) => `${value} in`,
+              },
+            },
+          },
+        },
+      });
+    }
+  }, [history]);
+
+  useEffect(() => {
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
+        chartRef.current = null;
       }
     };
-  }, [history]);
+  }, []);
 
   const isRaining = currentRate !== null && currentRate > 0;
 

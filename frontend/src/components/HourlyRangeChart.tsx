@@ -49,13 +49,6 @@ export default function HourlyRangeChart({ data }: HourlyRangeChartProps) {
   useEffect(() => {
     if (!canvasRef.current || data.length === 0) return;
 
-    if (chartRef.current) {
-      chartRef.current.destroy();
-    }
-
-    const ctx = canvasRef.current.getContext("2d");
-    if (!ctx) return;
-
     const sortedData = [...data].sort((a, b) => a.timestamp - b.timestamp);
 
     const labels = sortedData.map((d) =>
@@ -73,118 +66,146 @@ export default function HourlyRangeChart({ data }: HourlyRangeChartProps) {
     // Determine colors and labels dynamically
     const isFeelsLike = metric === "feels_like";
     const labelPrefix = isFeelsLike ? "Feels Like" : "Temp";
-    const mainColor = isFeelsLike ? "#fbbf24" : "#3b82f6"; // Amber for Feels Like, Blue for Temp
+    const mainColor = isFeelsLike ? "#fbbf24" : "#3b82f6";
     const maxBorder = isFeelsLike
       ? "rgba(245, 158, 11, 0.4)"
-      : "rgba(239, 68, 68, 0.4)"; // Orange vs Red
+      : "rgba(239, 68, 68, 0.4)";
     const minBorder = isFeelsLike
       ? "rgba(251, 191, 36, 0.4)"
-      : "rgba(59, 130, 246, 0.4)"; // Amber vs Blue
+      : "rgba(59, 130, 246, 0.4)";
     const fillColor = isFeelsLike
       ? "rgba(245, 158, 11, 0.05)"
       : "rgba(59, 130, 246, 0.05)";
 
-    chartRef.current = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: `Max ${labelPrefix}`,
-            data: maxVals,
-            borderColor: maxBorder,
-            borderDash: [3, 3],
-            borderWidth: 1,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: false,
-          },
-          {
-            label: `Min ${labelPrefix}`,
-            data: minVals,
-            borderColor: minBorder,
-            borderDash: [3, 3],
-            borderWidth: 1,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: 0, // Fills to Max dataset
-            backgroundColor: fillColor,
-          },
-          {
-            label: `Average ${labelPrefix}`,
-            data: avgVals,
-            borderColor: mainColor,
-            borderWidth: 2.5,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            fill: false,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-            labels: {
-              color: "#94a3b8",
-              font: {
-                family: "Outfit",
-                size: 11,
-              },
-            },
-          },
-          tooltip: {
-            mode: "index",
-            intersect: false,
-            titleFont: { family: "Outfit", size: 10 },
-            bodyFont: { family: "Outfit", size: 10 },
-            callbacks: {
-              label: (context) => {
-                const val = context.parsed.y.toFixed(1);
-                return `${context.dataset.label}: ${val}°F`;
-              },
-            },
-          },
-        },
-        scales: {
-          x: {
-            grid: {
-              color: "rgba(255, 255, 255, 0.05)",
-            },
-            ticks: {
-              color: "#94a3b8",
-              maxTicksLimit: 12,
-              font: {
-                family: "Outfit",
-                size: 9,
-              },
-            },
-          },
-          y: {
-            grid: {
-              color: "rgba(255, 255, 255, 0.05)",
-            },
-            ticks: {
-              color: "#94a3b8",
-              font: {
-                family: "Outfit",
-                size: 9,
-              },
-              callback: (value) => `${value}°F`,
-            },
-          },
-        },
-      },
-    });
+    if (chartRef.current) {
+      chartRef.current.data.labels = labels;
+      chartRef.current.data.datasets[0].label = `Max ${labelPrefix}`;
+      chartRef.current.data.datasets[0].data = maxVals;
+      chartRef.current.data.datasets[0].borderColor = maxBorder;
 
+      chartRef.current.data.datasets[1].label = `Min ${labelPrefix}`;
+      chartRef.current.data.datasets[1].data = minVals;
+      chartRef.current.data.datasets[1].borderColor = minBorder;
+      chartRef.current.data.datasets[1].backgroundColor = fillColor;
+
+      chartRef.current.data.datasets[2].label = `Average ${labelPrefix}`;
+      chartRef.current.data.datasets[2].data = avgVals;
+      chartRef.current.data.datasets[2].borderColor = mainColor;
+
+      chartRef.current.options.animation = { duration: 0 };
+      chartRef.current.update();
+    } else {
+      const ctx = canvasRef.current.getContext("2d");
+      if (!ctx) return;
+
+      chartRef.current = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: `Max ${labelPrefix}`,
+              data: maxVals,
+              borderColor: maxBorder,
+              borderDash: [3, 3],
+              borderWidth: 1,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              fill: false,
+            },
+            {
+              label: `Min ${labelPrefix}`,
+              data: minVals,
+              borderColor: minBorder,
+              borderDash: [3, 3],
+              borderWidth: 1,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              fill: 0, // Fills to Max dataset
+              backgroundColor: fillColor,
+            },
+            {
+              label: `Average ${labelPrefix}`,
+              data: avgVals,
+              borderColor: mainColor,
+              borderWidth: 2.5,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              fill: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                color: "#94a3b8",
+                font: {
+                  family: "Outfit",
+                  size: 11,
+                },
+              },
+            },
+            tooltip: {
+              mode: "index",
+              intersect: false,
+              titleFont: { family: "Outfit", size: 10 },
+              bodyFont: { family: "Outfit", size: 10 },
+              callbacks: {
+                label: (context) => {
+                  const val = context.parsed.y.toFixed(1);
+                  return `${context.dataset.label}: ${val}°F`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: {
+                color: "rgba(255, 255, 255, 0.05)",
+              },
+              ticks: {
+                color: "#94a3b8",
+                maxTicksLimit: 12,
+                font: {
+                  family: "Outfit",
+                  size: 9,
+                },
+              },
+            },
+            y: {
+              grid: {
+                color: "rgba(255, 255, 255, 0.05)",
+              },
+              ticks: {
+                color: "#94a3b8",
+                font: {
+                  family: "Outfit",
+                  size: 9,
+                },
+                callback: (value) => `${value}°F`,
+              },
+            },
+          },
+        },
+      });
+    }
+  }, [data, metric]); // Re-run when data or toggled metric changes
+
+  useEffect(() => {
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
+        chartRef.current = null;
       }
     };
-  }, [data, metric]); // Re-run when data or toggled metric changes
+  }, []); // Re-run when data or toggled metric changes
 
   return (
     <div
