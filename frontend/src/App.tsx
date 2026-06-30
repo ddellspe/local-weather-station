@@ -23,6 +23,11 @@ interface WeatherReading {
 }
 
 function App() {
+  const siteTitle =
+    document.title && document.title !== "{{ SITE_TITLE }}"
+      ? document.title
+      : "Local Weather Server";
+
   const [stations, setStations] = useState<Station[]>([]);
   const [selectedStation, setSelectedStation] = useState<string | null>(null);
   const [stationsLoading, setStationsLoading] = useState(true);
@@ -55,6 +60,27 @@ function App() {
   const [hourlyLoading, setHourlyLoading] = useState(false);
   const [hourlyError, setHourlyError] = useState<string | null>(null);
 
+  const [updateInterval, setUpdateInterval] = useState<number>(15);
+
+  // Fetch configuration on mount
+  useEffect(() => {
+    fetch("/api/v1/config")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch config");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (typeof data.update_interval === "number") {
+          setUpdateInterval(data.update_interval);
+        }
+      })
+      .catch((err) => {
+        console.error("Error loading config:", err);
+      });
+  }, []);
+
   // Fetch stations on mount
   useEffect(() => {
     fetch("/api/v1/stations")
@@ -78,132 +104,102 @@ function App() {
       });
   }, []);
 
-  // Fetch current conditions when selected station changes
-  useEffect(() => {
-    if (!selectedStation) return;
-
-    setLatestLoading(true);
+  // Fetch all dashboard data (silent in background if isSilent is true)
+  const fetchData = (stationId: string, isSilent: boolean = false) => {
+    if (!isSilent) {
+      setLatestLoading(true);
+      setHistoryLoading(true);
+      setWindLoading(true);
+      setRainLoading(true);
+      setHourlyLoading(true);
+    }
     setLatestError(null);
+    setHistoryError(null);
+    setWindError(null);
+    setRainError(null);
+    setHourlyError(null);
 
-    // Query last 2 hours of data to extract the latest reading quickly
-    fetch(`/api/v1/stations/${selectedStation}/history?hours=2`)
+    // 1. Fetch current conditions (using hours=2 to get latest reading)
+    fetch(`/api/v1/stations/${stationId}/history?hours=2`)
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch current conditions");
-        }
+        if (!res.ok) throw new Error("Failed to fetch current conditions");
         return res.json();
       })
       .then((data) => {
         const hist = data.history || [];
         setLatestReading(hist.length > 0 ? hist[hist.length - 1] : null);
-        setLatestLoading(false);
       })
-      .catch((err) => {
-        setLatestError(err.message);
-        setLatestLoading(false);
-      });
-  }, [selectedStation]);
+      .catch((err) => setLatestError(err.message))
+      .finally(() => setLatestLoading(false));
 
-  // Fetch 24-hour history when selected station changes
-  useEffect(() => {
-    if (!selectedStation) return;
-
-    setHistoryLoading(true);
-    setHistoryError(null);
-
-    fetch(`/api/v1/stations/${selectedStation}/history?hours=24`)
+    // 2. Fetch 24-hour history
+    fetch(`/api/v1/stations/${stationId}/history?hours=24`)
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch weather history");
-        }
+        if (!res.ok) throw new Error("Failed to fetch weather history");
         return res.json();
       })
       .then((data) => {
         setHistory(data.history || []);
-        setHistoryLoading(false);
       })
-      .catch((err) => {
-        setHistoryError(err.message);
-        setHistoryLoading(false);
-      });
-  }, [selectedStation]);
+      .catch((err) => setHistoryError(err.message))
+      .finally(() => setHistoryLoading(false));
 
-  // Fetch wind data when selected station changes
-  useEffect(() => {
-    if (!selectedStation) return;
-
-    setWindLoading(true);
-    setWindError(null);
-
-    fetch(`/api/v1/stations/${selectedStation}/wind`)
+    // 3. Fetch wind data
+    fetch(`/api/v1/stations/${stationId}/wind`)
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch wind data");
-        }
+        if (!res.ok) throw new Error("Failed to fetch wind data");
         return res.json();
       })
       .then((data) => {
         setWindData(data);
-        setWindLoading(false);
       })
-      .catch((err) => {
-        setWindError(err.message);
-        setWindLoading(false);
-      });
-  }, [selectedStation]);
+      .catch((err) => setWindError(err.message))
+      .finally(() => setWindLoading(false));
 
-  // Fetch rain data when selected station changes
-  useEffect(() => {
-    if (!selectedStation) return;
-
-    setRainLoading(true);
-    setRainError(null);
-
-    fetch(`/api/v1/stations/${selectedStation}/rain`)
+    // 4. Fetch rain data
+    fetch(`/api/v1/stations/${stationId}/rain`)
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch rain data");
-        }
+        if (!res.ok) throw new Error("Failed to fetch rain data");
         return res.json();
       })
       .then((data) => {
         setRainData(data);
-        setRainLoading(false);
       })
-      .catch((err) => {
-        setRainError(err.message);
-        setRainLoading(false);
-      });
-  }, [selectedStation]);
+      .catch((err) => setRainError(err.message))
+      .finally(() => setRainLoading(false));
 
-  // Fetch hourly history when selected station changes
-  useEffect(() => {
-    if (!selectedStation) return;
-
-    setHourlyLoading(true);
-    setHourlyError(null);
-
-    fetch(`/api/v1/stations/${selectedStation}/history/hourly`)
+    // 5. Fetch hourly history
+    fetch(`/api/v1/stations/${stationId}/history/hourly`)
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch hourly weather data");
-        }
+        if (!res.ok) throw new Error("Failed to fetch hourly weather data");
         return res.json();
       })
       .then((data) => {
         setHourlyData(data.history || []);
-        setHourlyLoading(false);
       })
-      .catch((err) => {
-        setHourlyError(err.message);
-        setHourlyLoading(false);
-      });
-  }, [selectedStation]);
+      .catch((err) => setHourlyError(err.message))
+      .finally(() => setHourlyLoading(false));
+  };
+
+  // Trigger fetch when selected station changes or interval fires
+  useEffect(() => {
+    if (!selectedStation) return;
+
+    // Initial non-silent load
+    fetchData(selectedStation, false);
+
+    // Setup periodic auto-update
+    const intervalId = setInterval(() => {
+      fetchData(selectedStation, true);
+    }, updateInterval * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [selectedStation, updateInterval]);
 
   return (
     <>
       <header className="hero-header">
-        <h1>David's Weather Station</h1>
+        <h1>{siteTitle}</h1>
         <p>Real-time Meteorological Dashboard</p>
 
         {stationsLoading && <p>Loading stations...</p>}
@@ -279,7 +275,7 @@ function App() {
               >
                 {new Date(latestReading.timestamp * 1000).toLocaleTimeString(
                   [],
-                  { hour: "2-digit", minute: "2-digit" },
+                  { hour: "2-digit", minute: "2-digit", second: "2-digit" },
                 )}
               </span>
             </div>
