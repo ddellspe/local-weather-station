@@ -104,16 +104,9 @@ export default function WindRose({
         boxSizing: "border-box",
       }}
     >
-      <h3
-        style={{
-          fontSize: "1.2rem",
-          color: "#60a5fa",
-          marginBottom: "0.25rem",
-          textAlign: "left",
-        }}
-      >
-        Wind Activity
-      </h3>
+      <div className="card-header">
+        <h3 className="card-title">Wind Activity</h3>
+      </div>
 
       <div
         style={{
@@ -248,30 +241,22 @@ export default function WindRose({
           <div className="metric-row">
             <div className="metric-label">Current Wind</div>
             <div className="metric-value highlight-cyan">
-              {currentSpeed !== null ? currentSpeed.toFixed(1) : "-"}{" "}
-              <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>mph</span>
+              {currentSpeed !== null ? currentSpeed.toFixed(1) : "-"}
+              <span className="unit">mph</span>
             </div>
           </div>
           <div className="metric-row">
             <div className="metric-label">Direction</div>
             <div className="metric-value">
               {currentCardinal}{" "}
-              <span
-                style={{
-                  fontSize: "0.85rem",
-                  color: "#94a3b8",
-                  fontWeight: 400,
-                }}
-              >
-                ({currentDirection?.toFixed(0)}°)
-              </span>
+              <span className="unit">({currentDirection?.toFixed(0)}°)</span>
             </div>
           </div>
           <div className="metric-row">
             <div className="metric-label">Peak Gust (1h)</div>
             <div className="metric-value highlight-orange">
-              {maxGust.toFixed(1)}{" "}
-              <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>mph</span>
+              {maxGust.toFixed(1)}
+              <span className="unit">mph</span>
             </div>
           </div>
         </div>
