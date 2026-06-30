@@ -61,7 +61,7 @@ class WeatherData(NamedTuple):
         else:
             timestamp = datetime.datetime.strptime(
                 dateutc, '%Y-%m-%d %H:%M:%S',
-            ).replace(tzinfo=tz)
+            ).replace(tzinfo=datetime.UTC).astimezone(tz)
         temperature = float(tempf)
         relative_humidity = float(humidity)
         wind_speed = float(windspeedmph)
@@ -122,7 +122,7 @@ class WeatherData(NamedTuple):
         else:
             timestamp = datetime.datetime.strptime(
                 dateutc, '%Y-%m-%d %H:%M:%S',
-            ).replace(tzinfo=tz)
+            ).replace(tzinfo=datetime.UTC).astimezone(tz)
         temperature = float(tempf)
         relative_humidity = float(humidity)
         wind_speed = float(windspeedmph)
