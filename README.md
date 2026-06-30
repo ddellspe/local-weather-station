@@ -17,9 +17,9 @@ docker run -d -p 5000:5000 -v ./data:/app/data ghcr.io/ddellspe/local-weather-st
 
 ### Docker Environment Variables
 
-| Environment Variable | Default Value | Purpose |
-| --- | --- | --- |
-| DB_PATH | database.db | Sets the name of the database file for use |
+| Environment Variable | Default Value | Purpose                                    |
+| -------------------- | ------------- | ------------------------------------------ |
+| DB_PATH              | database.db   | Sets the name of the database file for use |
 
 ### Docker Volumes
 
