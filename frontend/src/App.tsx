@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import TemperatureChart from "./components/TemperatureChart";
 import WindRose from "./components/WindRose";
 import RainTracker from "./components/RainTracker";
@@ -104,20 +104,16 @@ function App() {
       });
   }, []);
 
-  // Fetch all dashboard data (silent in background if isSilent is true)
-  const fetchData = (stationId: string, isSilent: boolean = false) => {
+  // Fetch fast dashboard data (current, wind, rain)
+  const fetchFastData = (stationId: string, isSilent: boolean = false) => {
     if (!isSilent) {
       setLatestLoading(true);
-      setHistoryLoading(true);
       setWindLoading(true);
       setRainLoading(true);
-      setHourlyLoading(true);
     }
     setLatestError(null);
-    setHistoryError(null);
     setWindError(null);
     setRainError(null);
-    setHourlyError(null);
 
     // 1. Fetch current conditions (using hours=2 to get latest reading)
     fetch(`/api/v1/stations/${stationId}/history?hours=2`)
@@ -132,19 +128,7 @@ function App() {
       .catch((err) => setLatestError(err.message))
       .finally(() => setLatestLoading(false));
 
-    // 2. Fetch 24-hour history
-    fetch(`/api/v1/stations/${stationId}/history?hours=24`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch weather history");
-        return res.json();
-      })
-      .then((data) => {
-        setHistory(data.history || []);
-      })
-      .catch((err) => setHistoryError(err.message))
-      .finally(() => setHistoryLoading(false));
-
-    // 3. Fetch wind data
+    // 2. Fetch wind data
     fetch(`/api/v1/stations/${stationId}/wind`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch wind data");
@@ -156,7 +140,7 @@ function App() {
       .catch((err) => setWindError(err.message))
       .finally(() => setWindLoading(false));
 
-    // 4. Fetch rain data
+    // 3. Fetch rain data
     fetch(`/api/v1/stations/${stationId}/rain`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch rain data");
@@ -167,8 +151,30 @@ function App() {
       })
       .catch((err) => setRainError(err.message))
       .finally(() => setRainLoading(false));
+  };
 
-    // 5. Fetch hourly history
+  // Fetch slow dashboard data (24-hour graphs)
+  const fetchSlowData = (stationId: string, isSilent: boolean = false) => {
+    if (!isSilent) {
+      setHistoryLoading(true);
+      setHourlyLoading(true);
+    }
+    setHistoryError(null);
+    setHourlyError(null);
+
+    // 1. Fetch 24-hour history
+    fetch(`/api/v1/stations/${stationId}/history?hours=24`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch weather history");
+        return res.json();
+      })
+      .then((data) => {
+        setHistory(data.history || []);
+      })
+      .catch((err) => setHistoryError(err.message))
+      .finally(() => setHistoryLoading(false));
+
+    // 2. Fetch hourly history
     fetch(`/api/v1/stations/${stationId}/history/hourly`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch hourly weather data");
@@ -181,16 +187,34 @@ function App() {
       .finally(() => setHourlyLoading(false));
   };
 
+  const ticksRef = useRef(0);
+
   // Trigger fetch when selected station changes or interval fires
   useEffect(() => {
     if (!selectedStation) return;
 
+    // Reset tick count on station change
+    ticksRef.current = 0;
+
     // Initial non-silent load
-    fetchData(selectedStation, false);
+    fetchFastData(selectedStation, false);
+    fetchSlowData(selectedStation, false);
 
     // Setup periodic auto-update
     const intervalId = setInterval(() => {
-      fetchData(selectedStation, true);
+      const ticksNeeded = Math.ceil(
+        Math.min(updateInterval * 5, 300) / updateInterval,
+      );
+      ticksRef.current += 1;
+
+      // Always update fast data on every tick
+      fetchFastData(selectedStation, true);
+
+      if (ticksRef.current >= ticksNeeded) {
+        // Slow refresh
+        fetchSlowData(selectedStation, true);
+        ticksRef.current = 0;
+      }
     }, updateInterval * 1000);
 
     return () => clearInterval(intervalId);
