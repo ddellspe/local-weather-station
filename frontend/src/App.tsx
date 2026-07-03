@@ -22,6 +22,16 @@ interface WeatherReading {
   daily_rain: number;
 }
 
+interface TemperatureRange {
+  min: number;
+  max: number;
+}
+
+interface Extremes24h {
+  temperature: TemperatureRange;
+  feels_like: TemperatureRange;
+}
+
 function App() {
   const siteTitle =
     document.title && document.title !== "{{ SITE_TITLE }}"
@@ -37,6 +47,7 @@ function App() {
   const [latestReading, setLatestReading] = useState<WeatherReading | null>(
     null,
   );
+  const [extremes24h, setExtremes24h] = useState<Extremes24h | null>(null);
   const [latestLoading, setLatestLoading] = useState(false);
   const [latestError, setLatestError] = useState<string | null>(null);
 
@@ -124,6 +135,7 @@ function App() {
       .then((data) => {
         const hist = data.history || [];
         setLatestReading(hist.length > 0 ? hist[hist.length - 1] : null);
+        setExtremes24h(data.extremes_24h || null);
       })
       .catch((err) => setLatestError(err.message))
       .finally(() => setLatestLoading(false));
@@ -170,6 +182,7 @@ function App() {
       })
       .then((data) => {
         setHistory(data.history || []);
+        setExtremes24h(data.extremes_24h || null);
       })
       .catch((err) => setHistoryError(err.message))
       .finally(() => setHistoryLoading(false));
@@ -293,6 +306,19 @@ function App() {
               </div>
             </div>
 
+            {extremes24h?.temperature && (
+              <div className="metric-row sub-row">
+                <div className="metric-label sub-label">24h High / Low</div>
+                <div className="metric-value sub-value">
+                  {extremes24h.temperature.max.toFixed(1)}
+                  <span className="unit">°F</span>
+                  <span className="separator">/</span>
+                  {extremes24h.temperature.min.toFixed(1)}
+                  <span className="unit">°F</span>
+                </div>
+              </div>
+            )}
+
             <div className="metric-row">
               <div className="metric-label">Feels Like</div>
               <div className="metric-value highlight-orange">
@@ -300,6 +326,21 @@ function App() {
                 <span className="unit">°F</span>
               </div>
             </div>
+
+            {extremes24h?.feels_like && (
+              <div className="metric-row sub-row">
+                <div className="metric-label sub-label">
+                  24h Feels High / Low
+                </div>
+                <div className="metric-value sub-value highlight-orange-sub">
+                  {extremes24h.feels_like.max.toFixed(1)}
+                  <span className="unit">°F</span>
+                  <span className="separator">/</span>
+                  {extremes24h.feels_like.min.toFixed(1)}
+                  <span className="unit">°F</span>
+                </div>
+              </div>
+            )}
 
             <div className="metric-row">
               <div className="metric-label">Humidity</div>
