@@ -128,6 +128,43 @@ def test_get_history_success(server: Any) -> None:
     assert point['humidity'] == 70.0
 
 
+def test_get_history_extremes(server: Any) -> None:
+    station_id = 'station-abc'
+    now_epoch = int(datetime.datetime.now(datetime.UTC).timestamp())
+
+    # Insert some readings
+    _insert_reading(
+        server, station_id, timestamp=now_epoch -
+        3600, temp=65.0, feels_like=60.0,
+    )
+    _insert_reading(
+        server, station_id, timestamp=now_epoch -
+        1800, temp=75.0, feels_like=80.0,
+    )
+    _insert_reading(
+        server, station_id, timestamp=now_epoch -
+        900, temp=70.0, feels_like=72.0,
+    )
+
+    # Insert an old reading (older than 24 hours) which
+    # shouldn't be counted in 24h extremes
+    _insert_reading(
+        server, station_id, timestamp=now_epoch -
+        90000, temp=95.0, feels_like=105.0,
+    )
+
+    resp = server.client.get(
+        flask.url_for('api_v1.get_history', station_id=station_id),
+    )
+    assert resp.response.status_code == 200
+    assert 'extremes_24h' in resp.json
+    extremes = resp.json['extremes_24h']
+    assert extremes['temperature']['min'] == 65.0
+    assert extremes['temperature']['max'] == 75.0
+    assert extremes['feels_like']['min'] == 60.0
+    assert extremes['feels_like']['max'] == 80.0
+
+
 def test_get_history_invalid_hours(server: Any) -> None:
     _import_test_data(server, 'station-abc')
     resp = server.client.get(
@@ -453,6 +490,14 @@ def test_endpoints_empty_data(server: Any) -> None:
     assert resp.json['current'] is None
     assert resp.json['last_zero_timestamp'] == 0
     assert resp.json['history_since_last_zero'] == []
+
+    # Get history
+    resp = server.client.get(
+        flask.url_for('api_v1.get_history', station_id='station-abc'),
+    )
+    assert resp.response.status_code == 200
+    assert resp.json['history'] == []
+    assert resp.json['extremes_24h'] is None
 
 
 def test_get_config(server: Any) -> None:

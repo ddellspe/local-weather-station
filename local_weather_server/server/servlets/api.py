@@ -56,7 +56,30 @@ def get_history(
             'rainfall_rate': row[7],
             'daily_rain': row[8],
         })
-    return {'history': history}
+    # Calculate 24-hour extremes
+    start_time_24h = now_epoch - (24 * 3600)
+    extremes_row = flask.g.db.execute(
+        'SELECT MIN(temperature), MAX(temperature), '
+        'MIN(feels_like), MAX(feels_like) '
+        'FROM weather_data '
+        'WHERE weather_station_id = ? AND timestamp >= ?',
+        (station_id, start_time_24h),
+    ).fetchone()
+
+    extremes_24h = None
+    if extremes_row and any(val is not None for val in extremes_row):
+        extremes_24h = {
+            'temperature': {
+                'min': extremes_row[0],
+                'max': extremes_row[1],
+            },
+            'feels_like': {
+                'min': extremes_row[2],
+                'max': extremes_row[3],
+            },
+        }
+
+    return {'history': history, 'extremes_24h': extremes_24h}
 
 
 @api_v1.route('/stations/<station_id>/wind')
