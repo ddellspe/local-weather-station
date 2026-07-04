@@ -378,6 +378,7 @@ def test_rain_event_history(server: Any) -> None:
         station_id,
         timestamp=now_epoch - 14400,
         rain_rate=0.0,
+        daily_rain=0.0,
     )
 
     # Point 2: 3 hours ago, rate = 0.0
@@ -386,6 +387,7 @@ def test_rain_event_history(server: Any) -> None:
         station_id,
         timestamp=now_epoch - 10800,
         rain_rate=0.0,
+        daily_rain=0.0,
     )
 
     # Point 3: 2 hours ago, rate = 0.5
@@ -394,6 +396,7 @@ def test_rain_event_history(server: Any) -> None:
         station_id,
         timestamp=now_epoch - 7200,
         rain_rate=0.5,
+        daily_rain=0.5,
     )
 
     # Point 4: 1 hour ago, rate = 1.2
@@ -402,6 +405,7 @@ def test_rain_event_history(server: Any) -> None:
         station_id,
         timestamp=now_epoch - 3600,
         rain_rate=1.2,
+        daily_rain=1.2,
     )
 
     resp = server.client.get(

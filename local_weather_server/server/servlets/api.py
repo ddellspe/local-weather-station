@@ -166,7 +166,7 @@ def get_rain(station_id: str) -> tuple[dict[str, Any], int] | dict[str, Any]:
     last_zero_row = flask.g.db.execute(
         'SELECT timestamp '
         'FROM weather_data '
-        'WHERE weather_station_id = ? AND rainfall_rate = 0.0 '
+        'WHERE weather_station_id = ? AND daily_rain = 0.0 '
         'ORDER BY timestamp DESC LIMIT 1',
         (station_id,),
     ).fetchone()
