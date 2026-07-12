@@ -53,7 +53,6 @@ function App() {
   const [latestReading, setLatestReading] = useState<WeatherReading | null>(
     null,
   );
-  const [extremes24h, setExtremes24h] = useState<Extremes24h | null>(null);
   const [dailyExtremes, setDailyExtremes] = useState<Extremes24h | null>(null);
   const [changes24h, setChanges24h] = useState<Changes24h | null>(null);
   const [latestLoading, setLatestLoading] = useState(false);
@@ -144,7 +143,6 @@ function App() {
       .then((data) => {
         const hist = data.history || [];
         setLatestReading(hist.length > 0 ? hist[hist.length - 1] : null);
-        setExtremes24h(data.extremes_24h || null);
         setDailyExtremes(data.daily_extremes || null);
         setChanges24h(data.changes_24h || null);
       })
@@ -193,7 +191,6 @@ function App() {
       })
       .then((data) => {
         setHistory(data.history || []);
-        setExtremes24h(data.extremes_24h || null);
         setDailyExtremes(data.daily_extremes || null);
         setChanges24h(data.changes_24h || null);
       })
