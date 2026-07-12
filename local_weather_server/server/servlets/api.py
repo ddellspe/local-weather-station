@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import zoneinfo
 from typing import Any
 
 import flask
@@ -21,11 +22,17 @@ def get_history(
     station_id: str,
 ) -> tuple[dict[str, Any], int] | dict[str, Any]:
     station = flask.g.db.execute(
-        'SELECT id FROM weather_station WHERE id = ?',
+        'SELECT id, timezone FROM weather_station WHERE id = ?',
         (station_id,),
     ).fetchone()
     if not station:
         return {'error': 'Station not found'}, 404
+
+    timezone_str = station[1]
+    try:
+        tz = zoneinfo.ZoneInfo(timezone_str) if timezone_str else datetime.UTC
+    except Exception:
+        tz = datetime.UTC
 
     try:
         hours = int(flask.request.args.get('hours', '24'))
@@ -79,7 +86,86 @@ def get_history(
             },
         }
 
-    return {'history': history, 'extremes_24h': extremes_24h}
+    # Calculate timezone-aware daily extremes (since local midnight)
+    now_local = datetime.datetime.now(tz)
+    midnight_local = now_local.replace(
+        hour=0, minute=0, second=0, microsecond=0,
+    )
+    midnight_epoch = int(midnight_local.timestamp())
+
+    daily_row = flask.g.db.execute(
+        'SELECT MIN(temperature), MAX(temperature), '
+        'MIN(feels_like), MAX(feels_like) '
+        'FROM weather_data '
+        'WHERE weather_station_id = ? AND timestamp >= ?',
+        (station_id, midnight_epoch),
+    ).fetchone()
+
+    daily_extremes = None
+    if daily_row and any(val is not None for val in daily_row):
+        daily_extremes = {
+            'temperature': {
+                'min': daily_row[0],
+                'max': daily_row[1],
+            },
+            'feels_like': {
+                'min': daily_row[2],
+                'max': daily_row[3],
+            },
+        }
+
+    # Calculate 24-hour changes
+    latest_row = flask.g.db.execute(
+        'SELECT temperature, feels_like, humidity, timestamp '
+        'FROM weather_data '
+        'WHERE weather_station_id = ? '
+        'ORDER BY timestamp DESC LIMIT 1',
+        (station_id,),
+    ).fetchone()
+
+    changes_24h = None
+    if latest_row:
+        target_time = now_epoch - (24 * 3600)
+        row_before = flask.g.db.execute(
+            'SELECT temperature, feels_like, humidity, timestamp '
+            'FROM weather_data '
+            'WHERE weather_station_id = ? AND timestamp <= ? '
+            'ORDER BY timestamp DESC LIMIT 1',
+            (station_id, target_time),
+        ).fetchone()
+        row_after = flask.g.db.execute(
+            'SELECT temperature, feels_like, humidity, timestamp '
+            'FROM weather_data '
+            'WHERE weather_station_id = ? AND timestamp >= ? '
+            'ORDER BY timestamp ASC LIMIT 1',
+            (station_id, target_time),
+        ).fetchone()
+
+        row_24h = None
+        if row_before and row_after:
+            diff_before = abs(row_before[3] - target_time)
+            diff_after = abs(row_after[3] - target_time)
+            if diff_before <= diff_after:
+                row_24h = row_before
+            else:
+                row_24h = row_after
+        else:
+            row_24h = row_before or row_after
+
+        # Ensure the 24h reading is within a 3-hour window of target_time
+        if row_24h and abs(row_24h[3] - target_time) <= 3 * 3600:
+            changes_24h = {
+                'temperature': round(latest_row[0] - row_24h[0], 1),
+                'feels_like': round(latest_row[1] - row_24h[1], 1),
+                'humidity': round(latest_row[2] - row_24h[2], 1),
+            }
+
+    return {
+        'history': history,
+        'extremes_24h': extremes_24h,
+        'daily_extremes': daily_extremes,
+        'changes_24h': changes_24h,
+    }
 
 
 @api_v1.route('/stations/<station_id>/wind')

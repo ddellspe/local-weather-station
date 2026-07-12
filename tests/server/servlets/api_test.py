@@ -37,7 +37,11 @@ def _import_test_data(
     )
 
 
-def _insert_station(server: Any, station_id: str) -> None:
+def _insert_station(
+    server: Any,
+    station_id: str,
+    timezone: str = 'UTC',
+) -> None:
     with server.sandbox.db() as db:
         exists = db.execute(
             'SELECT id FROM weather_station WHERE id = ?',
@@ -46,7 +50,7 @@ def _insert_station(server: Any, station_id: str) -> None:
         if not exists:
             db.execute(
                 'INSERT INTO weather_station (id, timezone) VALUES (?, ?)',
-                (station_id, 'UTC'),
+                (station_id, timezone),
             )
 
 
@@ -54,14 +58,14 @@ def _insert_reading(
     server: Any,
     station_id: str,
     timestamp: int,
-    temp: float = 70.0,
-    feels_like: float = 70.0,
+    temp: float | None = 70.0,
+    feels_like: float | None = 70.0,
     wind_speed: float = 15.0,
     wind_gust: float = 5.0,
     wind_dir: float = 120.0,
     rain_rate: float = 0.0,
     daily_rain: float = 0.02,
-    humidity: float = 70.0,
+    humidity: float | None = 70.0,
 ) -> None:
     _insert_station(server, station_id)
     with server.sandbox.db() as db:
@@ -80,7 +84,7 @@ def _insert_reading(
                 station_id,
                 temp,
                 humidity,
-                temp - 10.2,
+                temp - 10.2 if temp is not None else None,
                 feels_like,
                 rain_rate,
                 daily_rain,
@@ -502,6 +506,8 @@ def test_endpoints_empty_data(server: Any) -> None:
     assert resp.response.status_code == 200
     assert resp.json['history'] == []
     assert resp.json['extremes_24h'] is None
+    assert resp.json['daily_extremes'] is None
+    assert resp.json['changes_24h'] is None
 
 
 def test_get_config(server: Any) -> None:
@@ -522,3 +528,183 @@ def test_get_config(server: Any) -> None:
         resp = server.client.get(flask.url_for('api_v1.get_config'))
         assert resp.response.status_code == 200
         assert resp.json == {'update_interval': 15}
+
+
+def test_get_history_daily_extremes_and_changes(server: Any) -> None:
+    station_id = 'station-tz'
+    # Use America/Chicago timezone for test
+    tz_name = 'America/Chicago'
+    _insert_station(server, station_id, timezone=tz_name)
+
+    import zoneinfo
+    tz = zoneinfo.ZoneInfo(tz_name)
+
+    # Let's get the current local time in America/Chicago
+    now_local = datetime.datetime.now(tz)
+
+    # midnight today local time
+    midnight_local = now_local.replace(
+        hour=0, minute=0, second=0, microsecond=0,
+    )
+    midnight_epoch = int(midnight_local.timestamp())
+
+    # 2 hours before midnight today local time
+    # (which belongs to yesterday local time)
+    yesterday_epoch = midnight_epoch - 7200
+
+    # 2 hours after midnight today local time (belongs to today local time)
+    today_epoch = midnight_epoch + 7200
+
+    # Insert yesterday reading: temp=50.0, feels_like=45.0
+    _insert_reading(
+        server, station_id, timestamp=yesterday_epoch,
+        temp=50.0, feels_like=45.0, humidity=80.0,
+    )
+
+    # Insert today reading: temp=70.0, feels_like=68.0
+    _insert_reading(
+        server, station_id, timestamp=today_epoch,
+        temp=70.0, feels_like=68.0, humidity=60.0,
+    )
+
+    # Insert current reading: temp=75.0, feels_like=74.0
+    now_epoch = int(datetime.datetime.now(datetime.UTC).timestamp())
+    _insert_reading(
+        server, station_id, timestamp=now_epoch,
+        temp=75.0, feels_like=74.0, humidity=55.0,
+    )
+
+    # Insert 24 hours ago reading (within 3h window, say
+    # 24 hours - 5 minutes ago) to test 24h change:
+    # temp_24h_ago=72.0, feels_24h_ago=70.0, hum_24h_ago=65.0
+    ts_24h_ago = now_epoch - 24 * 3600 + 300
+    _insert_reading(
+        server, station_id, timestamp=ts_24h_ago,
+        temp=72.0, feels_like=70.0, humidity=65.0,
+    )
+
+    resp = server.client.get(
+        flask.url_for('api_v1.get_history', station_id=station_id),
+    )
+    assert resp.response.status_code == 200
+    assert 'daily_extremes' in resp.json
+    assert 'changes_24h' in resp.json
+
+    # Daily extremes should only include today's readings
+    # (today_epoch and now_epoch). Yesterday's reading (50.0 / 45.0)
+    # should be excluded because it's before local midnight!
+    daily = resp.json['daily_extremes']
+    assert daily['temperature']['min'] == 70.0
+    assert daily['temperature']['max'] == 75.0
+    assert daily['feels_like']['min'] == 68.0
+    assert daily['feels_like']['max'] == 74.0
+
+    # 24h changes compare current (now_epoch) with 24h ago (ts_24h_ago)
+    # current: temp=75.0, feels=74.0, humidity=55.0
+    # 24h ago: temp=72.0, feels=70.0, humidity=65.0
+    # changes: temp=+3.0, feels=+4.0, humidity=-10.0
+    changes = resp.json['changes_24h']
+    assert changes['temperature'] == 3.0
+    assert changes['feels_like'] == 4.0
+    assert changes['humidity'] == -10.0
+
+
+def test_get_history_coverage_corner_cases(server: Any) -> None:
+    # 1. Test invalid timezone handling
+    station_id_invalid_tz = 'station-invalid-tz'
+    _insert_station(server, station_id_invalid_tz, timezone='Invalid/Timezone')
+    # Trigger get_history on it, should fall back to UTC and work
+    resp = server.client.get(
+        flask.url_for('api_v1.get_history', station_id=station_id_invalid_tz),
+    )
+    assert resp.response.status_code == 200
+
+    # 2. Test where row_after is closer to target_time
+    station_id_closer_after = 'station-closer-after'
+    _insert_station(server, station_id_closer_after, timezone='UTC')
+
+    now_epoch = int(datetime.datetime.now(datetime.UTC).timestamp())
+    target_time = now_epoch - 24 * 3600
+
+    # row_before: 100 seconds before target_time
+    _insert_reading(
+        server, station_id_closer_after, timestamp=target_time - 100,
+        temp=70.0, feels_like=70.0, humidity=70.0,
+    )
+    # row_after: 50 seconds after target_time, temp=72.0, feels=71.0, hum=65.0
+    _insert_reading(
+        server, station_id_closer_after, timestamp=target_time + 50,
+        temp=72.0, feels_like=71.0, humidity=65.0,
+    )
+    # latest_row: now
+    _insert_reading(
+        server, station_id_closer_after, timestamp=now_epoch,
+        temp=75.0, feels_like=74.0, humidity=60.0,
+    )
+
+    resp = server.client.get(
+        flask.url_for(
+            'api_v1.get_history',
+            station_id=station_id_closer_after,
+        ),
+    )
+    assert resp.response.status_code == 200
+    # Because row_after is closer (50s diff vs 100s diff), it should be chosen.
+    # changes:
+    # temperature: latest (75.0) - row_after (72.0) = 3.0
+    # feels_like: latest (74.0) - row_after (71.0) = 3.0
+    # humidity: latest (60.0) - row_after (65.0) = -5.0
+    changes = resp.json['changes_24h']
+    assert changes['temperature'] == 3.0
+    assert changes['feels_like'] == 3.0
+    assert changes['humidity'] == -5.0
+
+    # 3. Test where only row_before exists
+    station_id_only_before = 'station-only-before'
+    _insert_station(server, station_id_only_before, timezone='UTC')
+    _insert_reading(
+        server, station_id_only_before, timestamp=target_time - 100,
+        temp=70.0, feels_like=70.0, humidity=70.0,
+    )
+    resp = server.client.get(
+        flask.url_for('api_v1.get_history', station_id=station_id_only_before),
+    )
+    assert resp.response.status_code == 200
+    assert resp.json['changes_24h']['temperature'] == 0.0
+
+    # 4. Test where only row_after exists
+    station_id_only_after = 'station-only-after'
+    _insert_station(server, station_id_only_after, timezone='UTC')
+    _insert_reading(
+        server, station_id_only_after, timestamp=target_time + 100,
+        temp=70.0, feels_like=70.0, humidity=70.0,
+    )
+    _insert_reading(
+        server, station_id_only_after, timestamp=now_epoch,
+        temp=75.0, feels_like=75.0, humidity=75.0,
+    )
+    resp = server.client.get(
+        flask.url_for('api_v1.get_history', station_id=station_id_only_after),
+    )
+    assert resp.response.status_code == 200
+    assert resp.json['changes_24h']['temperature'] == 5.0
+
+    # 5. Test where row_24h is outside the 3-hour window
+    station_id_outside_window = 'station-outside-window'
+    _insert_station(server, station_id_outside_window, timezone='UTC')
+    _insert_reading(
+        server, station_id_outside_window, timestamp=target_time - 4 * 3600,
+        temp=70.0, feels_like=70.0, humidity=70.0,
+    )
+    _insert_reading(
+        server, station_id_outside_window, timestamp=now_epoch,
+        temp=75.0, feels_like=75.0, humidity=75.0,
+    )
+    resp = server.client.get(
+        flask.url_for(
+            'api_v1.get_history',
+            station_id=station_id_outside_window,
+        ),
+    )
+    assert resp.response.status_code == 200
+    assert resp.json['changes_24h'] is None

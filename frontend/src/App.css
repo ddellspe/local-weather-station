@@ -225,3 +225,26 @@
 .metric-value.sub-value.highlight-orange-sub {
   color: #fcd34d;
 }
+
+/* 24h Change badge styling */
+.change-badge {
+  font-size: 0.725rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.change-badge.positive {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.change-badge.negative {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
