@@ -32,6 +32,12 @@ interface Extremes24h {
   feels_like: TemperatureRange;
 }
 
+interface Changes24h {
+  temperature: number | null;
+  feels_like: number | null;
+  humidity: number | null;
+}
+
 function App() {
   const siteTitle =
     document.title && document.title !== "{{ SITE_TITLE }}"
@@ -48,7 +54,10 @@ function App() {
     null,
   );
   const [extremes24h, setExtremes24h] = useState<Extremes24h | null>(null);
+  const [dailyExtremes, setDailyExtremes] = useState<Extremes24h | null>(null);
+  const [changes24h, setChanges24h] = useState<Changes24h | null>(null);
   const [latestLoading, setLatestLoading] = useState(false);
+
   const [latestError, setLatestError] = useState<string | null>(null);
 
   // 24-hour history state
@@ -136,6 +145,8 @@ function App() {
         const hist = data.history || [];
         setLatestReading(hist.length > 0 ? hist[hist.length - 1] : null);
         setExtremes24h(data.extremes_24h || null);
+        setDailyExtremes(data.daily_extremes || null);
+        setChanges24h(data.changes_24h || null);
       })
       .catch((err) => setLatestError(err.message))
       .finally(() => setLatestLoading(false));
@@ -183,6 +194,8 @@ function App() {
       .then((data) => {
         setHistory(data.history || []);
         setExtremes24h(data.extremes_24h || null);
+        setDailyExtremes(data.daily_extremes || null);
+        setChanges24h(data.changes_24h || null);
       })
       .catch((err) => setHistoryError(err.message))
       .finally(() => setHistoryLoading(false));
@@ -299,51 +312,84 @@ function App() {
             </div>
 
             <div className="metric-row">
-              <div className="metric-label">Temperature</div>
+              <div className="metric-label">
+                Temperature
+                {changes24h?.temperature !== undefined &&
+                  changes24h?.temperature !== null && (
+                    <span
+                      className={`change-badge ${changes24h.temperature >= 0 ? "positive" : "negative"}`}
+                    >
+                      {changes24h.temperature >= 0 ? "+" : ""}
+                      {changes24h.temperature.toFixed(1)}°F 24h
+                    </span>
+                  )}
+              </div>
               <div className="metric-value">
                 {latestReading.temperature.toFixed(1)}
                 <span className="unit">°F</span>
               </div>
             </div>
 
-            {extremes24h?.temperature && (
+            {dailyExtremes?.temperature && (
               <div className="metric-row sub-row">
-                <div className="metric-label sub-label">24h High / Low</div>
+                <div className="metric-label sub-label">Daily High / Low</div>
                 <div className="metric-value sub-value">
-                  {extremes24h.temperature.max.toFixed(1)}
+                  {dailyExtremes.temperature.max.toFixed(1)}
                   <span className="unit">°F</span>
                   <span className="separator">/</span>
-                  {extremes24h.temperature.min.toFixed(1)}
+                  {dailyExtremes.temperature.min.toFixed(1)}
                   <span className="unit">°F</span>
                 </div>
               </div>
             )}
 
             <div className="metric-row">
-              <div className="metric-label">Feels Like</div>
+              <div className="metric-label">
+                Feels Like
+                {changes24h?.feels_like !== undefined &&
+                  changes24h?.feels_like !== null && (
+                    <span
+                      className={`change-badge ${changes24h.feels_like >= 0 ? "positive" : "negative"}`}
+                    >
+                      {changes24h.feels_like >= 0 ? "+" : ""}
+                      {changes24h.feels_like.toFixed(1)}°F 24h
+                    </span>
+                  )}
+              </div>
               <div className="metric-value highlight-orange">
                 {latestReading.feels_like.toFixed(1)}
                 <span className="unit">°F</span>
               </div>
             </div>
 
-            {extremes24h?.feels_like && (
+            {dailyExtremes?.feels_like && (
               <div className="metric-row sub-row">
                 <div className="metric-label sub-label">
-                  24h Feels High / Low
+                  Daily Feels High / Low
                 </div>
                 <div className="metric-value sub-value highlight-orange-sub">
-                  {extremes24h.feels_like.max.toFixed(1)}
+                  {dailyExtremes.feels_like.max.toFixed(1)}
                   <span className="unit">°F</span>
                   <span className="separator">/</span>
-                  {extremes24h.feels_like.min.toFixed(1)}
+                  {dailyExtremes.feels_like.min.toFixed(1)}
                   <span className="unit">°F</span>
                 </div>
               </div>
             )}
 
             <div className="metric-row">
-              <div className="metric-label">Humidity</div>
+              <div className="metric-label">
+                Humidity
+                {changes24h?.humidity !== undefined &&
+                  changes24h?.humidity !== null && (
+                    <span
+                      className={`change-badge ${changes24h.humidity >= 0 ? "positive" : "negative"}`}
+                    >
+                      {changes24h.humidity >= 0 ? "+" : ""}
+                      {changes24h.humidity.toFixed(0)}% 24h
+                    </span>
+                  )}
+              </div>
               <div className="metric-value">
                 {latestReading.humidity.toFixed(0)}
                 <span className="unit">%</span>
