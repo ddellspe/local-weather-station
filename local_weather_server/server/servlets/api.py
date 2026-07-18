@@ -43,25 +43,34 @@ def get_history(
     start_time = now_epoch - (hours * 3600)
 
     cursor = flask.g.db.execute(
-        'SELECT timestamp, temperature, humidity, dew_point, feels_like, '
-        'wind_speed, wind_direction, rainfall_rate, daily_rain '
+        'SELECT '
+        '  (timestamp / 300) * 300 as five_minute_bucket, '
+        '  AVG(temperature), '
+        '  AVG(humidity), '
+        '  AVG(dew_point), '
+        '  AVG(feels_like), '
+        '  AVG(wind_speed), '
+        '  AVG(wind_direction), '
+        '  AVG(rainfall_rate), '
+        '  AVG(daily_rain) '
         'FROM weather_data '
         'WHERE weather_station_id = ? AND timestamp >= ? '
-        'ORDER BY timestamp ASC',
+        'GROUP BY five_minute_bucket '
+        'ORDER BY five_minute_bucket ASC',
         (station_id, start_time),
     )
     history = []
     for row in cursor.fetchall():
         history.append({
             'timestamp': row[0],
-            'temperature': row[1],
-            'humidity': row[2],
-            'dew_point': row[3],
-            'feels_like': row[4],
-            'wind_speed': row[5],
-            'wind_direction': row[6],
-            'rainfall_rate': row[7],
-            'daily_rain': row[8],
+            'temperature': round(row[1], 1) if row[1] is not None else 0.0,
+            'humidity': round(row[2], 1) if row[2] is not None else 0.0,
+            'dew_point': round(row[3], 1) if row[3] is not None else 0.0,
+            'feels_like': round(row[4], 1) if row[4] is not None else 0.0,
+            'wind_speed': round(row[5], 2) if row[5] is not None else 0.0,
+            'wind_direction': round(row[6], 1) if row[6] is not None else 0.0,
+            'rainfall_rate': round(row[7], 3) if row[7] is not None else 0.0,
+            'daily_rain': round(row[8], 2) if row[8] is not None else 0.0,
         })
     # Calculate 24-hour extremes
     start_time_24h = now_epoch - (24 * 3600)
