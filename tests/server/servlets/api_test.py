@@ -179,6 +179,65 @@ def test_get_history_invalid_hours(server: Any) -> None:
     assert resp.json == {'error': 'Invalid hours parameter'}
 
 
+def test_get_history_5min_averages(server: Any) -> None:
+    station_id = 'station-abc'
+    _insert_station(server, station_id)
+
+    now_epoch = int(datetime.datetime.now(datetime.UTC).timestamp())
+    bucket_a_time = ((now_epoch - 3600) // 300) * 300
+    bucket_b_time = ((now_epoch - 1800) // 300) * 300
+
+    # Insert two readings in Bucket A
+    _insert_reading(
+        server, station_id, timestamp=bucket_a_time + 10,
+        temp=60.0, feels_like=55.0, humidity=80.0,
+        wind_speed=10.0, wind_dir=100.0, rain_rate=0.05, daily_rain=0.1,
+    )
+    _insert_reading(
+        server, station_id, timestamp=bucket_a_time + 50,
+        temp=70.0, feels_like=65.0, humidity=70.0,
+        wind_speed=15.0, wind_dir=110.0, rain_rate=0.15, daily_rain=0.2,
+    )
+
+    # Insert one reading in Bucket B
+    _insert_reading(
+        server, station_id, timestamp=bucket_b_time + 20,
+        temp=80.0, feels_like=82.0, humidity=60.0,
+        wind_speed=20.0, wind_dir=120.0, rain_rate=0.0, daily_rain=0.3,
+    )
+
+    resp = server.client.get(
+        flask.url_for('api_v1.get_history', station_id=station_id),
+    )
+    assert resp.response.status_code == 200
+    assert 'history' in resp.json
+
+    history = resp.json['history']
+    assert len(history) == 2
+
+    # Bucket A assertions
+    assert history[0]['timestamp'] == bucket_a_time
+    assert history[0]['temperature'] == 65.0
+    assert history[0]['feels_like'] == 60.0
+    assert history[0]['humidity'] == 75.0
+    assert history[0]['wind_speed'] == 12.5
+    assert history[0]['wind_direction'] == 105.0
+    assert history[0]['rainfall_rate'] == 0.1
+    assert history[0]['daily_rain'] == 0.15
+    assert history[0]['dew_point'] == 54.8
+
+    # Bucket B assertions
+    assert history[1]['timestamp'] == bucket_b_time
+    assert history[1]['temperature'] == 80.0
+    assert history[1]['feels_like'] == 82.0
+    assert history[1]['humidity'] == 60.0
+    assert history[1]['wind_speed'] == 20.0
+    assert history[1]['wind_direction'] == 120.0
+    assert history[1]['rainfall_rate'] == 0.0
+    assert history[1]['daily_rain'] == 0.3
+    assert history[1]['dew_point'] == 69.8
+
+
 def test_get_wind(server: Any) -> None:
     # 404 test
     resp = server.client.get(
