@@ -574,19 +574,27 @@ def test_get_config(server: Any) -> None:
     with patch.dict('os.environ', {}, clear=True):
         resp = server.client.get(flask.url_for('api_v1.get_config'))
         assert resp.response.status_code == 200
-        assert resp.json == {'update_interval': 15}
+        assert resp.json == {'update_interval': 15, 'default_station': None}
 
     # 2. Configured case
-    with patch.dict('os.environ', {'UPDATE_INTERVAL_SECONDS': '12'}):
+    with patch.dict(
+        'os.environ', {
+            'UPDATE_INTERVAL_SECONDS': '12',
+            'DEFAULT_STATION': 'station-123',
+        },
+    ):
         resp = server.client.get(flask.url_for('api_v1.get_config'))
         assert resp.response.status_code == 200
-        assert resp.json == {'update_interval': 12}
+        assert resp.json == {
+            'update_interval': 12,
+            'default_station': 'station-123',
+        }
 
     # 3. Invalid value fallback case
     with patch.dict('os.environ', {'UPDATE_INTERVAL_SECONDS': 'not-a-number'}):
         resp = server.client.get(flask.url_for('api_v1.get_config'))
         assert resp.response.status_code == 200
-        assert resp.json == {'update_interval': 15}
+        assert resp.json == {'update_interval': 15, 'default_station': None}
 
 
 def test_get_history_daily_extremes_and_changes(server: Any) -> None:
