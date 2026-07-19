@@ -405,4 +405,8 @@ def get_config() -> dict[str, Any]:
         update_interval = int(os.environ.get('UPDATE_INTERVAL_SECONDS', '15'))
     except ValueError:
         update_interval = 15
-    return {'update_interval': update_interval}
+    default_station = os.environ.get('DEFAULT_STATION')
+    return {
+        'update_interval': update_interval,
+        'default_station': default_station,
+    }

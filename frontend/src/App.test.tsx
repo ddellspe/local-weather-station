@@ -154,6 +154,8 @@ describe("App Component", () => {
     vi.useFakeTimers();
     // Default document title
     document.title = "{{ SITE_TITLE }}";
+    localStorage.clear();
+    window.history.replaceState({}, "", "/");
   });
 
   afterEach(() => {
@@ -161,6 +163,8 @@ describe("App Component", () => {
     vi.useRealTimers();
     cleanup();
     (Chart as any).instances = [];
+    localStorage.clear();
+    window.history.replaceState({}, "", "/");
   });
 
   it("loads config, stations, fast/slow dashboard data, and runs periodic updates", async () => {
@@ -596,5 +600,212 @@ describe("App Component", () => {
 
     // Dropdown selector is not rendered since stations is empty array
     expect(screen.queryByLabelText("Station:")).toBeNull();
+  });
+
+  it("uses station query parameter for selection", async () => {
+    window.history.replaceState({}, "", "?station=station-2");
+
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      const urlStr = String(url);
+      let data: any;
+
+      if (urlStr.endsWith("/api/v1/config")) {
+        data = mockConfig;
+      } else if (urlStr.endsWith("/api/v1/stations")) {
+        data = mockStations;
+      } else if (urlStr.includes("/history?hours=2")) {
+        data = mockHistory2h;
+      } else if (urlStr.includes("/wind")) {
+        data = mockWind;
+      } else if (urlStr.includes("/rain")) {
+        data = mockRain;
+      } else if (urlStr.includes("/history?hours=24")) {
+        data = mockHistory24h;
+      } else if (urlStr.includes("/history/hourly")) {
+        data = mockHourly;
+      } else {
+        data = {};
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+      } as Response);
+    });
+
+    render(<App />);
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    const select = screen.getByLabelText("Station:") as HTMLSelectElement;
+    expect(select.value).toBe("station-2");
+    expect(localStorage.getItem("selected_station")).toBe("station-2");
+    expect(window.location.search).toContain("station=station-2");
+  });
+
+  it("uses default_station query parameter for selection", async () => {
+    window.history.replaceState({}, "", "?default_station=station-2");
+
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      const urlStr = String(url);
+      let data: any;
+
+      if (urlStr.endsWith("/api/v1/config")) {
+        data = mockConfig;
+      } else if (urlStr.endsWith("/api/v1/stations")) {
+        data = mockStations;
+      } else if (urlStr.includes("/history?hours=2")) {
+        data = mockHistory2h;
+      } else if (urlStr.includes("/wind")) {
+        data = mockWind;
+      } else if (urlStr.includes("/rain")) {
+        data = mockRain;
+      } else if (urlStr.includes("/history?hours=24")) {
+        data = mockHistory24h;
+      } else if (urlStr.includes("/history/hourly")) {
+        data = mockHourly;
+      } else {
+        data = {};
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+      } as Response);
+    });
+
+    render(<App />);
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    const select = screen.getByLabelText("Station:") as HTMLSelectElement;
+    expect(select.value).toBe("station-2");
+  });
+
+  it("uses localStorage for station selection when query param is absent", async () => {
+    localStorage.setItem("selected_station", "station-2");
+
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      const urlStr = String(url);
+      let data: any;
+
+      if (urlStr.endsWith("/api/v1/config")) {
+        data = mockConfig;
+      } else if (urlStr.endsWith("/api/v1/stations")) {
+        data = mockStations;
+      } else if (urlStr.includes("/history?hours=2")) {
+        data = mockHistory2h;
+      } else if (urlStr.includes("/wind")) {
+        data = mockWind;
+      } else if (urlStr.includes("/rain")) {
+        data = mockRain;
+      } else if (urlStr.includes("/history?hours=24")) {
+        data = mockHistory24h;
+      } else if (urlStr.includes("/history/hourly")) {
+        data = mockHourly;
+      } else {
+        data = {};
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+      } as Response);
+    });
+
+    render(<App />);
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    const select = screen.getByLabelText("Station:") as HTMLSelectElement;
+    expect(select.value).toBe("station-2");
+  });
+
+  it("uses backend config default_station when query param and localStorage are absent", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      const urlStr = String(url);
+      let data: any;
+
+      if (urlStr.endsWith("/api/v1/config")) {
+        data = { update_interval: 15, default_station: "station-2" };
+      } else if (urlStr.endsWith("/api/v1/stations")) {
+        data = mockStations;
+      } else if (urlStr.includes("/history?hours=2")) {
+        data = mockHistory2h;
+      } else if (urlStr.includes("/wind")) {
+        data = mockWind;
+      } else if (urlStr.includes("/rain")) {
+        data = mockRain;
+      } else if (urlStr.includes("/history?hours=24")) {
+        data = mockHistory24h;
+      } else if (urlStr.includes("/history/hourly")) {
+        data = mockHourly;
+      } else {
+        data = {};
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+      } as Response);
+    });
+
+    render(<App />);
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    const select = screen.getByLabelText("Station:") as HTMLSelectElement;
+    expect(select.value).toBe("station-2");
+  });
+
+  it("user changing station via dropdown updates localStorage and URL search params", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      const urlStr = String(url);
+      let data: any;
+
+      if (urlStr.endsWith("/api/v1/config")) {
+        data = mockConfig;
+      } else if (urlStr.endsWith("/api/v1/stations")) {
+        data = mockStations;
+      } else if (urlStr.includes("/history?hours=2")) {
+        data = mockHistory2h;
+      } else if (urlStr.includes("/wind")) {
+        data = mockWind;
+      } else if (urlStr.includes("/rain")) {
+        data = mockRain;
+      } else if (urlStr.includes("/history?hours=24")) {
+        data = mockHistory24h;
+      } else if (urlStr.includes("/history/hourly")) {
+        data = mockHourly;
+      } else {
+        data = {};
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+      } as Response);
+    });
+
+    render(<App />);
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    const select = screen.getByLabelText("Station:") as HTMLSelectElement;
+    expect(select.value).toBe("station-1");
+
+    // Change dropdown value to station-2
+    await act(async () => {
+      fireEvent.change(select, { target: { value: "station-2" } });
+    });
+
+    expect(select.value).toBe("station-2");
+    expect(localStorage.getItem("selected_station")).toBe("station-2");
+    expect(window.location.search).toContain("station=station-2");
   });
 });

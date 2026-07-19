@@ -81,39 +81,75 @@ function App() {
 
   const [updateInterval, setUpdateInterval] = useState<number>(15);
 
-  // Fetch configuration on mount
+  // Fetch configuration and stations on mount
   useEffect(() => {
-    fetch("/api/v1/config")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch config");
-        }
+    Promise.all([
+      fetch("/api/v1/config")
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch config");
+          return res.json();
+        })
+        .catch((err) => {
+          console.error("Error loading config:", err);
+          return {};
+        }),
+      fetch("/api/v1/stations").then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch stations");
         return res.json();
-      })
-      .then((data) => {
-        if (typeof data.update_interval === "number") {
-          setUpdateInterval(data.update_interval);
+      }),
+    ])
+      .then(([configData, stationsData]) => {
+        // Handle configuration settings
+        if (typeof configData.update_interval === "number") {
+          setUpdateInterval(configData.update_interval);
         }
-      })
-      .catch((err) => {
-        console.error("Error loading config:", err);
-      });
-  }, []);
+        const configDefault = configData.default_station;
 
-  // Fetch stations on mount
-  useEffect(() => {
-    fetch("/api/v1/stations")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch stations");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        const loadedStations = data.stations || [];
+        // Handle stations list
+        const loadedStations = stationsData.stations || [];
         setStations(loadedStations);
+
         if (loadedStations.length > 0) {
-          setSelectedStation(loadedStations[0].id);
+          // Precedence: 1. URL Query Parameter -> 2. LocalStorage -> 3. Backend Config Default -> 4. Fallback (First Station)
+          const urlParams = new URLSearchParams(window.location.search);
+          const queryStation =
+            urlParams.get("station") || urlParams.get("default_station");
+          const localStation = localStorage.getItem("selected_station");
+
+          let candidate: string | null = null;
+
+          if (
+            queryStation &&
+            loadedStations.some((s: Station) => s.id === queryStation)
+          ) {
+            candidate = queryStation;
+          } else if (
+            localStation &&
+            loadedStations.some((s: Station) => s.id === localStation)
+          ) {
+            candidate = localStation;
+          } else if (
+            configDefault &&
+            loadedStations.some((s: Station) => s.id === configDefault)
+          ) {
+            candidate = configDefault;
+          } else {
+            candidate = loadedStations[0].id;
+          }
+
+          setSelectedStation(candidate);
+
+          if (candidate) {
+            // Save state to localStorage for persistence
+            localStorage.setItem("selected_station", candidate);
+
+            // Sync with URL query parameter
+            const newUrl = new URL(window.location.href);
+            if (newUrl.searchParams.get("station") !== candidate) {
+              newUrl.searchParams.set("station", candidate);
+              window.history.replaceState({}, "", newUrl.toString());
+            }
+          }
         }
         setStationsLoading(false);
       })
@@ -264,7 +300,14 @@ function App() {
               <select
                 id="station-select"
                 value={selectedStation || ""}
-                onChange={(e) => setSelectedStation(e.target.value)}
+                onChange={(e) => {
+                  const newStation = e.target.value;
+                  setSelectedStation(newStation);
+                  localStorage.setItem("selected_station", newStation);
+                  const newUrl = new URL(window.location.href);
+                  newUrl.searchParams.set("station", newStation);
+                  window.history.replaceState({}, "", newUrl.toString());
+                }}
               >
                 {stations.map((s) => (
                   <option key={s.id} value={s.id}>
