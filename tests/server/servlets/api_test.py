@@ -130,6 +130,9 @@ def test_get_history_success(server: Any) -> None:
     point = resp.json['history'][0]
     assert point['temperature'] == 70.0
     assert point['humidity'] == 70.0
+    assert 'latest' in resp.json
+    assert resp.json['latest']['temperature'] == 70.0
+    assert resp.json['latest']['humidity'] == 70.0
 
 
 def test_get_history_extremes(server: Any) -> None:
@@ -567,6 +570,7 @@ def test_endpoints_empty_data(server: Any) -> None:
     assert resp.json['extremes_24h'] is None
     assert resp.json['daily_extremes'] is None
     assert resp.json['changes_24h'] is None
+    assert resp.json['latest'] is None
 
 
 def test_get_config(server: Any) -> None:

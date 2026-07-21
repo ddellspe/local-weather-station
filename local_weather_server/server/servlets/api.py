@@ -124,8 +124,9 @@ def get_history(
         }
 
     # Calculate 24-hour changes
-    latest_row = flask.g.db.execute(
-        'SELECT temperature, feels_like, humidity, timestamp '
+    row = flask.g.db.execute(
+        'SELECT timestamp, temperature, feels_like, humidity, dew_point, '
+        'wind_speed, wind_direction, rainfall_rate, daily_rain '
         'FROM weather_data '
         'WHERE weather_station_id = ? '
         'ORDER BY timestamp DESC LIMIT 1',
@@ -133,7 +134,21 @@ def get_history(
     ).fetchone()
 
     changes_24h = None
-    if latest_row:
+    latest = None
+    if row:
+        latest = {
+            'timestamp': row[0],
+            'temperature': round(row[1], 1) if row[1] is not None else 0.0,
+            'feels_like': round(row[2], 1) if row[2] is not None else 0.0,
+            'humidity': round(row[3], 1) if row[3] is not None else 0.0,
+            'dew_point': round(row[4], 1) if row[4] is not None else 0.0,
+            'wind_speed': round(row[5], 2) if row[5] is not None else 0.0,
+            'wind_direction': round(row[6], 1) if row[6] is not None else 0.0,
+            'rainfall_rate': round(row[7], 3) if row[7] is not None else 0.0,
+            'daily_rain': round(row[8], 2) if row[8] is not None else 0.0,
+        }
+
+        latest_row = row
         target_time = now_epoch - (24 * 3600)
         row_before = flask.g.db.execute(
             'SELECT temperature, feels_like, humidity, timestamp '
@@ -164,9 +179,9 @@ def get_history(
         # Ensure the 24h reading is within a 3-hour window of target_time
         if row_24h and abs(row_24h[3] - target_time) <= 3 * 3600:
             changes_24h = {
-                'temperature': round(latest_row[0] - row_24h[0], 1),
-                'feels_like': round(latest_row[1] - row_24h[1], 1),
-                'humidity': round(latest_row[2] - row_24h[2], 1),
+                'temperature': round(latest_row[1] - row_24h[0], 1),
+                'feels_like': round(latest_row[2] - row_24h[1], 1),
+                'humidity': round(latest_row[3] - row_24h[2], 1),
             }
 
     return {
@@ -174,6 +189,7 @@ def get_history(
         'extremes_24h': extremes_24h,
         'daily_extremes': daily_extremes,
         'changes_24h': changes_24h,
+        'latest': latest,
     }
 
 

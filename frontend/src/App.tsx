@@ -178,7 +178,9 @@ function App() {
       })
       .then((data) => {
         const hist = data.history || [];
-        setLatestReading(hist.length > 0 ? hist[hist.length - 1] : null);
+        setLatestReading(
+          data.latest || (hist.length > 0 ? hist[hist.length - 1] : null),
+        );
         setDailyExtremes(data.daily_extremes || null);
         setChanges24h(data.changes_24h || null);
       })
