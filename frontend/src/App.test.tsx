@@ -95,6 +95,17 @@ describe("App Component", () => {
       feels_like: 2.5,
       humidity: -2.0,
     },
+    latest: {
+      timestamp: 1720036009,
+      temperature: 73.0,
+      humidity: 57,
+      dew_point: 55.5,
+      feels_like: 73.5,
+      wind_speed: 4.8,
+      wind_direction: 98,
+      rainfall_rate: 0.02,
+      daily_rain: 0.02,
+    },
   };
   const mockWind = {
     current: { wind_direction: 95, wind_speed: 4.5 },
@@ -219,9 +230,9 @@ describe("App Component", () => {
 
     // Check latest conditions rendered properly
     expect(screen.getByText("Current Conditions")).toBeDefined();
-    expect(screen.getByText("72.0")).toBeDefined(); // Temp value
-    expect(screen.getByText("72.5")).toBeDefined(); // Feels like value
-    expect(screen.getByText("58")).toBeDefined(); // Humidity
+    expect(screen.getByText("73.0")).toBeDefined(); // Temp value
+    expect(screen.getByText("73.5")).toBeDefined(); // Feels like value
+    expect(screen.getByText("57")).toBeDefined(); // Humidity
 
     // Select second station to trigger station change fast/slow data fetches
     await act(async () => {
