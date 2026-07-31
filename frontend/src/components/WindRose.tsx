@@ -38,12 +38,12 @@ export default function WindRose({
   maxGust,
   history,
 }: WindRoseProps) {
-  // Group history into 16 bins (representing N, NNE, NE, etc.)
+  // Group history into 16 bins (representing N, NNE, NE, etc.), compounding by wind intensity (wind speed)
   const binCounts = useMemo(() => {
     const counts = Array(16).fill(0);
     history.forEach((pt) => {
       const bin = Math.round(pt.wind_direction / 22.5) % 16;
-      counts[bin] += 1;
+      counts[bin] += pt.wind_speed;
     });
     return counts;
   }, [history]);
