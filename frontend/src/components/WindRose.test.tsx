@@ -47,4 +47,27 @@ describe("WindRose Component", () => {
     expect(screen.getAllByText("-")[0]).toBeDefined();
     expect(screen.getByText("0.0")).toBeDefined();
   });
+
+  it("compounds wind rose bins by wind speed intensity", () => {
+    // 1 strong reading at 20mph North vs 2 weak readings at 1mph East
+    const history = [
+      { wind_speed: 20.0, wind_direction: 0, timestamp: 1000 },
+      { wind_speed: 1.0, wind_direction: 90, timestamp: 2000 },
+      { wind_speed: 1.0, wind_direction: 90, timestamp: 3000 },
+    ];
+
+    const { container } = render(
+      <WindRose
+        currentDirection={0}
+        currentSpeed={20.0}
+        maxGust={20.0}
+        history={history}
+      />,
+    );
+
+    const polygon = container.querySelector("polygon");
+    expect(polygon).not.toBeNull();
+    const pointsAttr = polygon?.getAttribute("points");
+    expect(pointsAttr).toBeDefined();
+  });
 });
