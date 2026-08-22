@@ -248,3 +248,9 @@
   color: var(--accent-red);
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
+
+.change-badge.neutral {
+  background-color: rgba(148, 163, 184, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
