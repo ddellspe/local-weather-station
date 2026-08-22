@@ -359,9 +359,13 @@ function App() {
                 {changes24h?.temperature !== undefined &&
                   changes24h?.temperature !== null && (
                     <span
-                      className={`change-badge ${changes24h.temperature >= 0 ? "positive" : "negative"}`}
+                      className={`change-badge ${parseFloat(changes24h.temperature.toFixed(1)) === 0 ? "neutral" : changes24h.temperature > 0 ? "positive" : "negative"}`}
                     >
-                      {changes24h.temperature >= 0 ? "+" : ""}
+                      {parseFloat(changes24h.temperature.toFixed(1)) === 0
+                        ? ""
+                        : changes24h.temperature > 0
+                          ? "+"
+                          : ""}
                       {changes24h.temperature.toFixed(1)}°F 24h
                     </span>
                   )}
@@ -391,9 +395,13 @@ function App() {
                 {changes24h?.feels_like !== undefined &&
                   changes24h?.feels_like !== null && (
                     <span
-                      className={`change-badge ${changes24h.feels_like >= 0 ? "positive" : "negative"}`}
+                      className={`change-badge ${parseFloat(changes24h.feels_like.toFixed(1)) === 0 ? "neutral" : changes24h.feels_like > 0 ? "positive" : "negative"}`}
                     >
-                      {changes24h.feels_like >= 0 ? "+" : ""}
+                      {parseFloat(changes24h.feels_like.toFixed(1)) === 0
+                        ? ""
+                        : changes24h.feels_like > 0
+                          ? "+"
+                          : ""}
                       {changes24h.feels_like.toFixed(1)}°F 24h
                     </span>
                   )}
@@ -425,9 +433,13 @@ function App() {
                 {changes24h?.humidity !== undefined &&
                   changes24h?.humidity !== null && (
                     <span
-                      className={`change-badge ${changes24h.humidity >= 0 ? "positive" : "negative"}`}
+                      className={`change-badge ${parseFloat(changes24h.humidity.toFixed(0)) === 0 ? "neutral" : changes24h.humidity > 0 ? "positive" : "negative"}`}
                     >
-                      {changes24h.humidity >= 0 ? "+" : ""}
+                      {parseFloat(changes24h.humidity.toFixed(0)) === 0
+                        ? ""
+                        : changes24h.humidity > 0
+                          ? "+"
+                          : ""}
                       {changes24h.humidity.toFixed(0)}% 24h
                     </span>
                   )}

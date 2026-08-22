@@ -487,6 +487,93 @@ describe("App Component", () => {
     expect(screen.getByText("+5% 24h")).toBeDefined();
   });
 
+  it("renders neutral change badges when values round to zero", async () => {
+    const mockHistory2hZeroChanges = {
+      history: [
+        {
+          timestamp: 1720000000,
+          temperature: 70.0,
+          humidity: 60,
+          dew_point: 55.0,
+          feels_like: 70.0,
+          wind_speed: 3.0,
+          wind_direction: 90,
+          rainfall_rate: 0.0,
+          daily_rain: 0.0,
+        },
+        {
+          timestamp: 1720036000,
+          temperature: 70.0,
+          humidity: 60,
+          dew_point: 55.0,
+          feels_like: 70.0,
+          wind_speed: 3.0,
+          wind_direction: 90,
+          rainfall_rate: 0.0,
+          daily_rain: 0.0,
+        },
+      ],
+      daily_extremes: {
+        temperature: { min: 65.0, max: 75.0 },
+        feels_like: { min: 64.0, max: 76.0 },
+      },
+      changes_24h: {
+        temperature: 0.0,
+        feels_like: 0.04,
+        humidity: 0.4,
+      },
+    };
+
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      const urlStr = String(url);
+      let data: any;
+
+      if (urlStr.endsWith("/api/v1/config")) {
+        data = mockConfig;
+      } else if (urlStr.endsWith("/api/v1/stations")) {
+        data = mockStations;
+      } else if (urlStr.includes("/history?hours=2")) {
+        data = mockHistory2hZeroChanges;
+      } else if (urlStr.includes("/wind")) {
+        data = mockWind;
+      } else if (urlStr.includes("/rain")) {
+        data = mockRain;
+      } else if (urlStr.includes("/history?hours=24")) {
+        data = mockHistory24h;
+      } else if (urlStr.includes("/history/hourly")) {
+        data = mockHourly;
+      } else {
+        return Promise.reject(new Error(`Unhandled mock fetch URL: ${urlStr}`));
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+      } as Response);
+    });
+
+    render(<App />);
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    // All three badges round to zero: no +/- prefix, shown as neutral
+    // Both temperature (0.0) and feels_like (0.04 → 0.0) render "0.0°F 24h"
+    const tempBadges = screen.getAllByText("0.0°F 24h");
+    expect(tempBadges.length).toBe(2);
+    tempBadges.forEach((badge) => {
+      expect(badge.className).toContain("neutral");
+      expect(badge.className).not.toContain("positive");
+      expect(badge.className).not.toContain("negative");
+    });
+    // feels_like 0.04 rounds to 0.0, humidity 0.4 rounds to 0
+    expect(screen.getAllByText(/0\.0°F 24h/).length).toBe(2);
+    expect(screen.getByText("0% 24h")).toBeDefined();
+    // Verify no spurious + or - signs appear in the badge text
+    expect(screen.queryByText(/^\+.*24h$/)).toBeNull();
+    expect(screen.queryByText(/^-.*24h$/)).toBeNull();
+  });
+
   it("renders safely when changes_24h values are null or missing", async () => {
     const mockHistory2hNullChanges = {
       history: [
